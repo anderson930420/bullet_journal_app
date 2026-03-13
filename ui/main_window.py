@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -29,59 +30,78 @@ class MainWindow(QMainWindow):
     def _setup_ui(self) -> None:
         central_widget = QWidget()
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(24, 20, 24, 24)
-        main_layout.setSpacing(16)
-
-        title_label = QLabel("Bullet Journal App")
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("""
-            font-size: 28px;
-            font-weight: 700;
-            color: #1f2933;
-            padding: 8px 0 4px 0;
-            letter-spacing: 0.3px;
-        """)
+        main_layout.setContentsMargins(18, 18, 18, 18)
+        main_layout.setSpacing(0)
 
         content_layout = QHBoxLayout()
-        content_layout.setSpacing(16)
+        content_layout.setSpacing(18)
 
-        sidebar_container = QWidget()
+        sidebar_container = QFrame()
         sidebar_layout = QVBoxLayout(sidebar_container)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
-        sidebar_layout.setSpacing(10)
+        sidebar_layout.setContentsMargins(18, 20, 18, 18)
+        sidebar_layout.setSpacing(14)
+        sidebar_container.setFixedWidth(228)
+        sidebar_container.setStyleSheet("""
+            QFrame {
+                background: #f6f4ef;
+                border: 1px solid #dfdbd2;
+                border-radius: 28px;
+            }
+        """)
+
+        app_label = QLabel("Bullet Journal")
+        app_label.setStyleSheet("""
+            font-size: 24px;
+            font-weight: 700;
+            color: #18202a;
+            padding-left: 6px;
+        """)
+
+        app_subtitle = QLabel("A quiet place to plan and write.")
+        app_subtitle.setWordWrap(True)
+        app_subtitle.setStyleSheet("""
+            font-size: 13px;
+            color: #7b817c;
+            padding: 0 6px 6px 6px;
+            line-height: 1.35;
+        """)
 
         sidebar_label = QLabel("Navigate")
         sidebar_label.setStyleSheet("""
             font-size: 12px;
             font-weight: 700;
-            color: #66707a;
-            letter-spacing: 0.5px;
-            padding-left: 8px;
+            color: #8a908b;
+            letter-spacing: 1px;
+            padding-left: 10px;
+            text-transform: uppercase;
         """)
 
         self.sidebar = QListWidget()
-        self.sidebar.setFixedWidth(180)
         self.sidebar.setSpacing(6)
         self.sidebar.setStyleSheet("""
             QListWidget {
-                background: #ffffff;
-                border: 1px solid #d9dde3;
-                border-radius: 18px;
-                padding: 10px;
-                outline: none;
-                font-size: 14px;
-            }
-            QListWidget::item {
                 background: transparent;
                 border: none;
-                border-radius: 10px;
-                padding: 12px 14px;
-                color: #4a5562;
+                border-radius: 20px;
+                padding: 6px 0;
+                outline: none;
+                font-size: 15px;
+            }
+            QListWidget::item {
+                background: rgba(255, 255, 255, 0.55);
+                border: none;
+                border-radius: 16px;
+                padding: 15px 16px;
+                color: #59616b;
                 font-weight: 600;
             }
             QListWidget::item:selected {
-                background: #e9eef5;
-                color: #1f2933;
+                background: #ffffff;
+                border: 1px solid #ded9d1;
+                color: #18202a;
+            }
+            QListWidget::item:hover {
+                background: rgba(255, 255, 255, 0.9);
             }
         """)
 
@@ -91,33 +111,45 @@ class MainWindow(QMainWindow):
         self.collections_view = CollectionsView()
         self.recently_deleted_view = RecentlyDeletedView()
 
+        content_panel = QFrame()
+        content_panel.setStyleSheet("""
+            QFrame {
+                background: #fcfbf8;
+                border: 1px solid #dfdbd2;
+                border-radius: 30px;
+            }
+        """)
+        content_panel_layout = QVBoxLayout(content_panel)
+        content_panel_layout.setContentsMargins(0, 0, 0, 0)
+
         self.content_stack = QStackedWidget()
         self.content_stack.setStyleSheet("""
             QStackedWidget {
-                background: #f7f8fa;
-                border: 1px solid #d9dde3;
-                border-radius: 18px;
+                background: transparent;
+                border: none;
+                border-radius: 28px;
             }
         """)
+        content_panel_layout.addWidget(self.content_stack)
 
-        self._add_navigation_item("Today", self.today_view)
+        self._add_navigation_item("Daily", self.today_view)
         self._add_navigation_item("Monthly", self.monthly_view)
         self._add_navigation_item("Future", self.future_view)
-        self._add_navigation_item("Collections", self.collections_view)
-        self._add_navigation_item("Recently Deleted", self.recently_deleted_view)
+        self._add_navigation_item("Notes", self.collections_view)
+        self._add_navigation_item("Trash", self.recently_deleted_view)
 
+        sidebar_layout.addWidget(app_label)
+        sidebar_layout.addWidget(app_subtitle)
         sidebar_layout.addWidget(sidebar_label)
         sidebar_layout.addWidget(self.sidebar, 1)
 
         content_layout.addWidget(sidebar_container)
-        content_layout.addWidget(self.content_stack, 1)
-
-        main_layout.addWidget(title_label)
+        content_layout.addWidget(content_panel, 1)
         main_layout.addLayout(content_layout)
 
         self.sidebar.setCurrentRow(0)
 
-        central_widget.setStyleSheet("background: #eef1f4;")
+        central_widget.setStyleSheet("background: #ece8e1;")
         self.setCentralWidget(central_widget)
 
     def _add_navigation_item(self, label: str, view: QWidget) -> None:

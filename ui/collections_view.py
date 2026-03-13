@@ -33,20 +33,20 @@ class CollectionEditorView(QWidget):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(18, 18, 18, 18)
-        layout.setSpacing(14)
+        layout.setContentsMargins(30, 30, 30, 28)
+        layout.setSpacing(18)
 
         editor_card = QFrame()
         editor_card.setStyleSheet("""
             QFrame {
-                background: #ffffff;
-                border: 1px solid #d9dde3;
-                border-radius: 18px;
+                background: #fffdfa;
+                border: 1px solid #e3dfd6;
+                border-radius: 28px;
             }
         """)
         editor_layout = QVBoxLayout(editor_card)
-        editor_layout.setContentsMargins(22, 20, 22, 18)
-        editor_layout.setSpacing(12)
+        editor_layout.setContentsMargins(42, 34, 42, 28)
+        editor_layout.setSpacing(22)
 
         self.title_input = QLineEdit()
         self.title_input.setPlaceholderText("Title")
@@ -54,10 +54,10 @@ class CollectionEditorView(QWidget):
             QLineEdit {
                 border: none;
                 background: transparent;
-                font-size: 28px;
+                font-size: 34px;
                 font-weight: 700;
-                color: #18202a;
-                padding: 4px 0 8px 0;
+                color: #141b23;
+                padding: 8px 0 12px 0;
             }
         """)
 
@@ -67,9 +67,9 @@ class CollectionEditorView(QWidget):
             QTextEdit {
                 border: none;
                 background: transparent;
-                font-size: 16px;
+                font-size: 18px;
                 line-height: 1.5;
-                color: #2b3440;
+                color: #2b3138;
                 padding: 0;
             }
         """)
@@ -78,13 +78,13 @@ class CollectionEditorView(QWidget):
         self.save_button.clicked.connect(self._save_collection)
         self.save_button.setStyleSheet("""
             QPushButton {
-                background: #1f2933;
+                background: #1d2530;
                 color: white;
                 border: none;
-                border-radius: 10px;
-                padding: 10px 18px;
+                border-radius: 16px;
+                padding: 14px 22px;
                 font-weight: 600;
-                min-width: 88px;
+                min-width: 96px;
             }
         """)
 
@@ -92,13 +92,13 @@ class CollectionEditorView(QWidget):
         self.delete_button.clicked.connect(self._delete_collection)
         self.delete_button.setStyleSheet("""
             QPushButton {
-                background: #ffffff;
-                color: #344150;
-                border: 1px solid #d9dde3;
-                border-radius: 10px;
-                padding: 10px 18px;
+                background: #f7f4ef;
+                color: #3c4650;
+                border: 1px solid #e1dcd3;
+                border-radius: 16px;
+                padding: 14px 20px;
                 font-weight: 600;
-                min-width: 110px;
+                min-width: 118px;
             }
         """)
 
@@ -181,34 +181,34 @@ class CollectionsView(QWidget):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(16)
+        layout.setContentsMargins(34, 34, 34, 30)
+        layout.setSpacing(22)
 
-        title = QLabel("Collections")
-        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #1f2933;")
+        title = QLabel("Notes")
+        title.setStyleSheet("font-size: 32px; font-weight: 700; color: #171e27;")
 
         subtitle = QLabel("A quiet place for longer notes and ideas.")
-        subtitle.setStyleSheet("font-size: 13px; color: #66707a;")
+        subtitle.setStyleSheet("font-size: 15px; color: #737a74; padding-bottom: 4px;")
 
         content_layout = QHBoxLayout()
-        content_layout.setSpacing(16)
+        content_layout.setSpacing(22)
         left_layout = QVBoxLayout()
-        left_layout.setSpacing(12)
+        left_layout.setSpacing(14)
 
         left_card = QFrame()
         left_card.setStyleSheet("""
             QFrame {
-                background: #ffffff;
-                border: 1px solid #d9dde3;
-                border-radius: 18px;
+                background: #f7f4ef;
+                border: 1px solid #e2ddd4;
+                border-radius: 24px;
             }
         """)
         left_card_layout = QVBoxLayout(left_card)
-        left_card_layout.setContentsMargins(14, 14, 14, 14)
-        left_card_layout.setSpacing(12)
+        left_card_layout.setContentsMargins(18, 18, 18, 18)
+        left_card_layout.setSpacing(14)
 
         list_label = QLabel("Notes")
-        list_label.setStyleSheet("font-size: 12px; font-weight: 700; color: #66707a; letter-spacing: 0.5px;")
+        list_label.setStyleSheet("font-size: 12px; font-weight: 700; color: #8a908b; letter-spacing: 1px;")
 
         self.collection_list = QListWidget()
         self.collection_list.currentItemChanged.connect(self._select_collection)
@@ -217,25 +217,30 @@ class CollectionsView(QWidget):
         self.collection_list.setDragEnabled(True)
         self.collection_list.setAcceptDrops(True)
         self.collection_list.setDropIndicatorShown(True)
-        self.collection_list.setSpacing(4)
+        self.collection_list.setMinimumWidth(260)
+        self.collection_list.setSpacing(8)
         self.collection_list.setStyleSheet("""
             QListWidget {
-                background: #ffffff;
+                background: transparent;
                 border: none;
                 outline: none;
-                font-size: 14px;
+                font-size: 15px;
             }
             QListWidget::item {
-                background: #f8f9fb;
-                border: 1px solid #edf0f4;
-                border-radius: 10px;
-                padding: 10px 12px;
-                margin: 2px 0;
+                background: rgba(255, 255, 255, 0.65);
+                border: 1px solid transparent;
+                border-radius: 16px;
+                padding: 14px 16px;
+                margin: 3px 0;
+                color: #505963;
             }
             QListWidget::item:selected {
-                background: #e9eef5;
-                border: 1px solid #d5dde8;
-                color: #1f2933;
+                background: #ffffff;
+                border: 1px solid #ddd8cf;
+                color: #161c24;
+            }
+            QListWidget::item:hover {
+                background: rgba(255, 255, 255, 0.95);
             }
         """)
         self.collection_list.model().rowsMoved.connect(self._save_collection_order)
@@ -244,11 +249,11 @@ class CollectionsView(QWidget):
         self.new_note_button.clicked.connect(self._new_note)
         self.new_note_button.setStyleSheet("""
             QPushButton {
-                background: #ffffff;
-                color: #344150;
-                border: 1px solid #d9dde3;
-                border-radius: 10px;
-                padding: 10px 14px;
+                background: #f8f6f1;
+                color: #38424d;
+                border: 1px solid #e1dcd3;
+                border-radius: 16px;
+                padding: 14px 16px;
                 font-weight: 600;
             }
         """)

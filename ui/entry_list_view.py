@@ -15,27 +15,31 @@ class EntryListView(QWidget):
 
     def _create_list_widget(self, reorderable: bool = False) -> QListWidget:
         entry_list = ReorderableListWidget() if reorderable else QListWidget()
-        entry_list.setSpacing(6)
+        entry_list.setSpacing(10)
         entry_list.setStyleSheet("""
             QListWidget {
-                background: #ffffff;
-                border: 1px solid #d9dde3;
-                border-radius: 14px;
-                padding: 10px;
+                background: #f9f7f2;
+                border: 1px solid #e3dfd6;
+                border-radius: 22px;
+                padding: 14px;
                 outline: none;
-                font-size: 14px;
+                font-size: 15px;
             }
             QListWidget::item {
-                background: #f8f9fb;
-                border: 1px solid #edf0f4;
-                border-radius: 10px;
-                padding: 10px 12px;
-                margin: 2px 0;
+                background: rgba(255, 255, 255, 0.88);
+                border: 1px solid #ece7df;
+                border-radius: 16px;
+                padding: 14px 16px;
+                margin: 4px 0;
+                color: #212833;
             }
             QListWidget::item:selected {
-                background: #e9eef5;
-                border: 1px solid #d5dde8;
-                color: #1f2933;
+                background: #ffffff;
+                border: 1px solid #ddd8cf;
+                color: #161c24;
+            }
+            QListWidget::item:hover {
+                background: #fffdfa;
             }
         """)
 

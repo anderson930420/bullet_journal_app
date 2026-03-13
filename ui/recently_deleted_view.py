@@ -26,14 +26,14 @@ class RecentlyDeletedView(EntryListView):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(16)
+        layout.setContentsMargins(34, 34, 34, 30)
+        layout.setSpacing(20)
 
-        title = QLabel("Recently Deleted")
-        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #1f2933;")
+        title = QLabel("Trash")
+        title.setStyleSheet("font-size: 30px; font-weight: 700; color: #242a31;")
 
-        subtitle = QLabel("Restore planning entries or remove them permanently.")
-        subtitle.setStyleSheet("font-size: 13px; color: #66707a;")
+        subtitle = QLabel("Review deleted items before removing them permanently.")
+        subtitle.setStyleSheet("font-size: 15px; color: #82857e; padding-bottom: 4px;")
 
         self.entry_list = self._create_list_widget()
 
@@ -58,11 +58,11 @@ class RecentlyDeletedView(EntryListView):
     def _button_style(self) -> str:
         return """
             QPushButton {
-                background: #ffffff;
-                color: #344150;
-                border: 1px solid #d9dde3;
-                border-radius: 10px;
-                padding: 10px 14px;
+                background: #f8f6f1;
+                color: #49515b;
+                border: 1px solid #e1dcd3;
+                border-radius: 14px;
+                padding: 13px 16px;
                 font-weight: 600;
             }
         """

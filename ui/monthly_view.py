@@ -29,26 +29,26 @@ class MonthlyView(EntryListView):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(16)
+        layout.setContentsMargins(34, 34, 34, 30)
+        layout.setSpacing(20)
 
         title = QLabel("Monthly Log")
-        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #1f2933;")
+        title.setStyleSheet("font-size: 32px; font-weight: 700; color: #171e27;")
 
         subtitle = QLabel("Keep the month in view without clutter.")
-        subtitle.setStyleSheet("font-size: 13px; color: #66707a;")
+        subtitle.setStyleSheet("font-size: 15px; color: #737a74; padding-bottom: 4px;")
 
         input_card = QFrame()
         input_card.setStyleSheet("""
             QFrame {
-                background: #ffffff;
-                border: 1px solid #d9dde3;
-                border-radius: 16px;
+                background: #f7f4ef;
+                border: 1px solid #e2ddd4;
+                border-radius: 24px;
             }
         """)
         input_layout = QHBoxLayout(input_card)
-        input_layout.setContentsMargins(14, 14, 14, 14)
-        input_layout.setSpacing(10)
+        input_layout.setContentsMargins(20, 20, 20, 20)
+        input_layout.setSpacing(14)
 
         self.entry_input = QLineEdit()
         self.entry_input.setPlaceholderText("Add something to this month...")
@@ -96,11 +96,11 @@ class MonthlyView(EntryListView):
     def _button_style(self) -> str:
         return """
             QPushButton {
-                background: #ffffff;
-                color: #344150;
-                border: 1px solid #d9dde3;
-                border-radius: 10px;
-                padding: 10px 14px;
+                background: #f8f6f1;
+                color: #38424d;
+                border: 1px solid #e1dcd3;
+                border-radius: 14px;
+                padding: 13px 16px;
                 font-weight: 600;
             }
         """
@@ -108,35 +108,38 @@ class MonthlyView(EntryListView):
     def _primary_button_style(self) -> str:
         return """
             QPushButton {
-                background: #1f2933;
+                background: #1d2530;
                 color: white;
                 border: none;
-                border-radius: 10px;
-                padding: 10px 16px;
+                border-radius: 16px;
+                padding: 14px 20px;
                 font-weight: 600;
+                min-width: 112px;
             }
         """
 
     def _text_input_style(self) -> str:
         return """
             QLineEdit {
-                background: #f8f9fb;
-                border: 1px solid #e2e7ee;
-                border-radius: 10px;
-                padding: 10px 12px;
-                font-size: 14px;
+                background: #fffdf9;
+                border: 1px solid #e7e2da;
+                border-radius: 16px;
+                padding: 14px 16px;
+                font-size: 15px;
+                color: #1d2430;
             }
         """
 
     def _combo_style(self) -> str:
         return """
             QComboBox {
-                background: #f8f9fb;
-                border: 1px solid #e2e7ee;
-                border-radius: 10px;
-                padding: 10px 12px;
-                font-size: 14px;
-                min-width: 110px;
+                background: #fffdf9;
+                border: 1px solid #e7e2da;
+                border-radius: 16px;
+                padding: 14px 16px;
+                font-size: 15px;
+                min-width: 126px;
+                color: #1d2430;
             }
         """
 
