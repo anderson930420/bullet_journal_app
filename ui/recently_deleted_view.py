@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -26,14 +27,19 @@ class RecentlyDeletedView(EntryListView):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(34, 34, 34, 30)
-        layout.setSpacing(20)
+        layout.setContentsMargins(56, 42, 56, 36)
+        layout.setSpacing(22)
+
+        content = QFrame()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(22)
 
         title = QLabel("Trash")
-        title.setStyleSheet("font-size: 30px; font-weight: 700; color: #242a31;")
+        title.setStyleSheet("font-size: 36px; font-weight: 700; color: #1D1D1F;")
 
         subtitle = QLabel("Review deleted items before removing them permanently.")
-        subtitle.setStyleSheet("font-size: 15px; color: #82857e; padding-bottom: 4px;")
+        subtitle.setStyleSheet("font-size: 15px; color: #86868B; padding-bottom: 6px;")
 
         self.entry_list = self._create_list_widget()
 
@@ -49,19 +55,22 @@ class RecentlyDeletedView(EntryListView):
         actions_layout.setSpacing(10)
         actions_layout.addWidget(self.restore_button)
         actions_layout.addWidget(self.delete_button)
+        actions_layout.addStretch(1)
 
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
-        layout.addWidget(self.entry_list, 1)
-        layout.addLayout(actions_layout)
+        content_layout.addWidget(title)
+        content_layout.addWidget(subtitle)
+        content_layout.addWidget(self.entry_list, 1)
+        content_layout.addSpacing(24)
+        content_layout.addLayout(actions_layout)
+        layout.addWidget(content, 1)
 
     def _button_style(self) -> str:
         return """
             QPushButton {
-                background: #f8f6f1;
-                color: #49515b;
-                border: 1px solid #e1dcd3;
-                border-radius: 14px;
+                background: transparent;
+                color: #5C5C62;
+                border: 1px solid #E5E5E5;
+                border-radius: 12px;
                 padding: 13px 16px;
                 font-weight: 600;
             }

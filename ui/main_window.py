@@ -30,39 +30,39 @@ class MainWindow(QMainWindow):
     def _setup_ui(self) -> None:
         central_widget = QWidget()
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(18, 18, 18, 18)
+        main_layout.setContentsMargins(16, 16, 16, 16)
         main_layout.setSpacing(0)
 
         content_layout = QHBoxLayout()
-        content_layout.setSpacing(18)
+        content_layout.setSpacing(20)
 
         sidebar_container = QFrame()
         sidebar_layout = QVBoxLayout(sidebar_container)
-        sidebar_layout.setContentsMargins(18, 20, 18, 18)
-        sidebar_layout.setSpacing(14)
-        sidebar_container.setFixedWidth(228)
+        sidebar_layout.setContentsMargins(18, 24, 18, 18)
+        sidebar_layout.setSpacing(16)
+        sidebar_container.setFixedWidth(220)
         sidebar_container.setStyleSheet("""
             QFrame {
-                background: #f6f4ef;
-                border: 1px solid #dfdbd2;
-                border-radius: 28px;
+                background: #F5F5F7;
+                border: none;
+                border-radius: 18px;
             }
         """)
 
         app_label = QLabel("Bullet Journal")
         app_label.setStyleSheet("""
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
-            color: #18202a;
-            padding-left: 6px;
+            color: #1D1D1F;
+            padding-left: 8px;
         """)
 
         app_subtitle = QLabel("A quiet place to plan and write.")
         app_subtitle.setWordWrap(True)
         app_subtitle.setStyleSheet("""
             font-size: 13px;
-            color: #7b817c;
-            padding: 0 6px 6px 6px;
+            color: #86868B;
+            padding: 0 8px 8px 8px;
             line-height: 1.35;
         """)
 
@@ -70,7 +70,7 @@ class MainWindow(QMainWindow):
         sidebar_label.setStyleSheet("""
             font-size: 12px;
             font-weight: 700;
-            color: #8a908b;
+            color: #86868B;
             letter-spacing: 1px;
             padding-left: 10px;
             text-transform: uppercase;
@@ -82,26 +82,25 @@ class MainWindow(QMainWindow):
             QListWidget {
                 background: transparent;
                 border: none;
-                border-radius: 20px;
+                border-radius: 14px;
                 padding: 6px 0;
                 outline: none;
                 font-size: 15px;
             }
             QListWidget::item {
-                background: rgba(255, 255, 255, 0.55);
+                background: transparent;
                 border: none;
-                border-radius: 16px;
-                padding: 15px 16px;
-                color: #59616b;
+                border-radius: 12px;
+                padding: 12px 14px;
+                color: #53535A;
                 font-weight: 600;
             }
             QListWidget::item:selected {
-                background: #ffffff;
-                border: 1px solid #ded9d1;
-                color: #18202a;
+                background: #FFFFFF;
+                color: #1D1D1F;
             }
             QListWidget::item:hover {
-                background: rgba(255, 255, 255, 0.9);
+                background: rgba(255, 255, 255, 0.72);
             }
         """)
 
@@ -114,9 +113,9 @@ class MainWindow(QMainWindow):
         content_panel = QFrame()
         content_panel.setStyleSheet("""
             QFrame {
-                background: #fcfbf8;
-                border: 1px solid #dfdbd2;
-                border-radius: 30px;
+                background: #FFFFFF;
+                border: none;
+                border-radius: 20px;
             }
         """)
         content_panel_layout = QVBoxLayout(content_panel)
@@ -127,7 +126,7 @@ class MainWindow(QMainWindow):
             QStackedWidget {
                 background: transparent;
                 border: none;
-                border-radius: 28px;
+                border-radius: 20px;
             }
         """)
         content_panel_layout.addWidget(self.content_stack)
@@ -149,7 +148,7 @@ class MainWindow(QMainWindow):
 
         self.sidebar.setCurrentRow(0)
 
-        central_widget.setStyleSheet("background: #ece8e1;")
+        central_widget.setStyleSheet("background: #FFFFFF;")
         self.setCentralWidget(central_widget)
 
     def _add_navigation_item(self, label: str, view: QWidget) -> None:

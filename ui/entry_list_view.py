@@ -18,28 +18,27 @@ class EntryListView(QWidget):
         entry_list.setSpacing(10)
         entry_list.setStyleSheet("""
             QListWidget {
-                background: #f9f7f2;
-                border: 1px solid #e3dfd6;
-                border-radius: 22px;
-                padding: 14px;
+                background: #FFFFFF;
+                border: none;
+                border-radius: 12px;
+                padding: 8px 0;
                 outline: none;
                 font-size: 15px;
             }
             QListWidget::item {
-                background: rgba(255, 255, 255, 0.88);
-                border: 1px solid #ece7df;
-                border-radius: 16px;
+                background: transparent;
+                border: none;
+                border-radius: 12px;
                 padding: 14px 16px;
-                margin: 4px 0;
-                color: #212833;
+                margin: 2px 0;
+                color: #1D1D1F;
             }
             QListWidget::item:selected {
-                background: #ffffff;
-                border: 1px solid #ddd8cf;
-                color: #161c24;
+                background: #F5F8FF;
+                color: #1D1D1F;
             }
             QListWidget::item:hover {
-                background: #fffdfa;
+                background: #FAFAFB;
             }
         """)
 

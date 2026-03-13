@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
 )
 
@@ -29,69 +30,90 @@ class TodayView(EntryListView):
 
     def _setup_ui(self) -> None:
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(34, 34, 34, 30)
-        main_layout.setSpacing(20)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        content_row = QHBoxLayout()
+        content_row.setContentsMargins(0, 0, 0, 0)
+        content_row.setSpacing(0)
+        content_row.addStretch(1)
+
+        content = QFrame()
+        content.setMaximumWidth(1160)
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(56, 42, 56, 36)
+        content_layout.setSpacing(22)
+
+        content_row.addWidget(content, 0)
+        content_row.addStretch(1)
+        main_layout.addLayout(content_row)
 
         title_label = QLabel("Daily Log")
-        title_label.setStyleSheet("font-size: 32px; font-weight: 700; color: #171e27;")
+        title_label.setStyleSheet("font-size: 36px; font-weight: 700; color: #1D1D1F;")
 
         subtitle_label = QLabel("Capture tasks, events, and notes for the day.")
-        subtitle_label.setStyleSheet("font-size: 15px; color: #737a74; padding-bottom: 4px;")
+        subtitle_label.setStyleSheet("font-size: 15px; color: #86868B; padding-bottom: 6px;")
 
         input_card = QFrame()
         input_card.setStyleSheet("""
             QFrame {
-                background: #f7f4ef;
-                border: 1px solid #e2ddd4;
-                border-radius: 24px;
+                background: #F5F5F7;
+                border: none;
+                border-radius: 12px;
             }
         """)
         input_layout = QHBoxLayout(input_card)
-        input_layout.setContentsMargins(20, 20, 20, 20)
-        input_layout.setSpacing(14)
+        input_layout.setContentsMargins(26, 26, 26, 26)
+        input_layout.setSpacing(16)
 
         self.entry_input = QLineEdit()
         self.entry_input.setPlaceholderText("Write a task, event, or note...")
         self.entry_input.setStyleSheet("""
             QLineEdit {
-                background: #fffdf9;
-                border: 1px solid #e7e2da;
-                border-radius: 16px;
-                padding: 14px 16px;
+                background: #FFFFFF;
+                border: none;
+                border-radius: 12px;
+                padding: 16px 18px;
                 font-size: 15px;
-                color: #1d2430;
+                color: #1D1D1F;
             }
         """)
+        self.entry_input.setMinimumHeight(58)
+        self.entry_input.setMinimumWidth(640)
+        self.entry_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self.entry_type = QComboBox()
         self.entry_type.addItems(["task", "event", "note"])
         self.entry_type.setStyleSheet("""
             QComboBox {
-                background: #fffdf9;
-                border: 1px solid #e7e2da;
-                border-radius: 16px;
-                padding: 14px 16px;
+                background: #FFFFFF;
+                border: none;
+                border-radius: 12px;
+                padding: 16px 18px;
                 font-size: 15px;
-                min-width: 126px;
-                color: #1d2430;
+                min-width: 132px;
+                color: #1D1D1F;
             }
         """)
+        self.entry_type.setMinimumHeight(58)
+        self.entry_type.setMaximumWidth(124)
 
         self.add_button = QPushButton("Add Entry")
         self.add_button.clicked.connect(self._add_entry)
         self.add_button.setStyleSheet("""
             QPushButton {
-                background: #1d2530;
+                background: #007AFF;
                 color: white;
                 border: none;
-                border-radius: 16px;
-                padding: 14px 20px;
+                border-radius: 12px;
+                padding: 16px 22px;
                 font-weight: 600;
-                min-width: 112px;
+                min-width: 116px;
             }
         """)
+        self.add_button.setMinimumHeight(58)
+        self.add_button.setMaximumWidth(116)
 
-        input_layout.addWidget(self.entry_input)
+        input_layout.addWidget(self.entry_input, 1)
         input_layout.addWidget(self.entry_type)
         input_layout.addWidget(self.add_button)
 
@@ -117,19 +139,20 @@ class TodayView(EntryListView):
         actions_layout.addWidget(self.migrate_button)
         actions_layout.addWidget(self.delete_button)
 
-        main_layout.addWidget(title_label)
-        main_layout.addWidget(subtitle_label)
-        main_layout.addWidget(input_card)
-        main_layout.addWidget(self.entry_list, 1)
-        main_layout.addLayout(actions_layout)
+        content_layout.addWidget(title_label)
+        content_layout.addWidget(subtitle_label)
+        content_layout.addWidget(input_card)
+        content_layout.addWidget(self.entry_list, 1)
+        content_layout.addSpacing(18)
+        content_layout.addLayout(actions_layout)
 
     def _secondary_button_style(self) -> str:
         return """
             QPushButton {
-                background: #f8f6f1;
-                color: #38424d;
-                border: 1px solid #e1dcd3;
-                border-radius: 14px;
+                background: transparent;
+                color: #4C4C52;
+                border: 1px solid #E5E5E5;
+                border-radius: 12px;
                 padding: 13px 16px;
                 font-weight: 600;
             }
