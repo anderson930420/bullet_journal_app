@@ -135,17 +135,19 @@ class TodayView(QWidget):
         }
         return symbols.get(entry_type, "•")
     
-    def _migrate_entry(self):
+    def _migrate_entry(self) -> None:
         item = self.entry_list.currentItem()
 
-        if not item:
+        if item is None:
             return
 
         data = item.data(Qt.UserRole)
+        if not data:
+            return
+
         entry_id = data["id"]
 
         from services.capture_service import migrate_to_future
-
         migrate_to_future(entry_id)
 
         self._refresh_entries()

@@ -2,6 +2,7 @@ from database import (
     add_entry,
     delete_entry,
     get_entries,
+    migrate_entry,
     update_entry_completed,
 )
 
@@ -21,3 +22,6 @@ def toggle_entry(entry_id: int, completed: bool):
 
 def remove_entry(entry_id: int):
     delete_entry(entry_id)
+
+def migrate_to_future(entry_id: int):
+    migrate_entry(entry_id, "future")
