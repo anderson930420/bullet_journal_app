@@ -19,12 +19,46 @@ class MainWindow(QMainWindow):
     def _setup_ui(self) -> None:
         central_widget = QWidget()
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(24, 20, 24, 24)
+        main_layout.setSpacing(16)
 
         title_label = QLabel("Bullet Journal App")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("font-size: 24px; font-weight: bold; padding: 12px;")
+        title_label.setStyleSheet("""
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2933;
+            padding: 8px 0 4px 0;
+            letter-spacing: 0.3px;
+        """)
 
         self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #d9dde3;
+                border-radius: 18px;
+                background: #f7f8fa;
+                top: -1px;
+            }
+            QTabBar::tab {
+                background: transparent;
+                border: none;
+                padding: 10px 18px;
+                margin-right: 6px;
+                color: #5b6570;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            QTabBar::tab:selected {
+                color: #1f2933;
+                background: #ffffff;
+                border: 1px solid #d9dde3;
+                border-bottom-color: #ffffff;
+                border-top-left-radius: 12px;
+                border-top-right-radius: 12px;
+            }
+        """)
 
         self.today_view = TodayView()
         self.monthly_view = MonthlyView()
@@ -39,6 +73,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(title_label)
         main_layout.addWidget(self.tabs)
 
+        central_widget.setStyleSheet("background: #eef1f4;")
         self.setCentralWidget(central_widget)
 
     def _connect_signals(self) -> None:

@@ -1,11 +1,36 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QWidget
 
+
 class EntryListView(QWidget):
     entries_changed = Signal()
 
     def _create_list_widget(self) -> QListWidget:
-        return QListWidget()
+        entry_list = QListWidget()
+        entry_list.setSpacing(6)
+        entry_list.setStyleSheet("""
+            QListWidget {
+                background: #ffffff;
+                border: 1px solid #d9dde3;
+                border-radius: 14px;
+                padding: 10px;
+                outline: none;
+                font-size: 14px;
+            }
+            QListWidget::item {
+                background: #f8f9fb;
+                border: 1px solid #edf0f4;
+                border-radius: 10px;
+                padding: 10px 12px;
+                margin: 2px 0;
+            }
+            QListWidget::item:selected {
+                background: #e9eef5;
+                border: 1px solid #d5dde8;
+                color: #1f2933;
+            }
+        """)
+        return entry_list
 
     def refresh_entries(self) -> None:
         self.entry_list.clear()

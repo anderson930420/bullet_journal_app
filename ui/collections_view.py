@@ -1,5 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -29,21 +30,66 @@ class CollectionEditorView(QWidget):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(14)
+
+        editor_card = QFrame()
+        editor_card.setStyleSheet("""
+            QFrame {
+                background: #ffffff;
+                border: 1px solid #d9dde3;
+                border-radius: 18px;
+            }
+        """)
+        editor_layout = QVBoxLayout(editor_card)
+        editor_layout.setContentsMargins(22, 20, 22, 18)
+        editor_layout.setSpacing(12)
 
         self.title_input = QLineEdit()
         self.title_input.setPlaceholderText("Title")
-        self.title_input.setStyleSheet("font-size: 24px; font-weight: bold; padding: 8px;")
+        self.title_input.setStyleSheet("""
+            QLineEdit {
+                border: none;
+                background: transparent;
+                font-size: 28px;
+                font-weight: 700;
+                color: #18202a;
+                padding: 4px 0 8px 0;
+            }
+        """)
 
         self.editor = QTextEdit()
         self.editor.setPlaceholderText("Write freely in this collection...")
-        self.editor.setStyleSheet("font-size: 16px; padding: 8px;")
+        self.editor.setStyleSheet("""
+            QTextEdit {
+                border: none;
+                background: transparent;
+                font-size: 16px;
+                line-height: 1.5;
+                color: #2b3440;
+                padding: 0;
+            }
+        """)
 
         self.save_button = QPushButton("Save")
         self.save_button.clicked.connect(self._save_collection)
+        self.save_button.setStyleSheet("""
+            QPushButton {
+                background: #1f2933;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                padding: 10px 18px;
+                font-weight: 600;
+                min-width: 88px;
+            }
+        """)
 
-        layout.addWidget(self.title_input)
-        layout.addWidget(self.editor, 1)
-        layout.addWidget(self.save_button)
+        editor_layout.addWidget(self.title_input)
+        editor_layout.addWidget(self.editor, 1)
+        editor_layout.addWidget(self.save_button, 0, Qt.AlignmentFlag.AlignRight)
+
+        layout.addWidget(editor_card, 1)
 
     def set_collection(self, collection_id: int | None) -> None:
         self.collection_id = collection_id
@@ -102,30 +148,85 @@ class CollectionsView(QWidget):
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
 
         title = QLabel("Collections")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 12px;")
+        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #1f2933;")
+
+        subtitle = QLabel("A quiet place for longer notes and ideas.")
+        subtitle.setStyleSheet("font-size: 13px; color: #66707a;")
 
         content_layout = QHBoxLayout()
+        content_layout.setSpacing(16)
         left_layout = QVBoxLayout()
+        left_layout.setSpacing(12)
+
+        left_card = QFrame()
+        left_card.setStyleSheet("""
+            QFrame {
+                background: #ffffff;
+                border: 1px solid #d9dde3;
+                border-radius: 18px;
+            }
+        """)
+        left_card_layout = QVBoxLayout(left_card)
+        left_card_layout.setContentsMargins(14, 14, 14, 14)
+        left_card_layout.setSpacing(12)
+
+        list_label = QLabel("Notes")
+        list_label.setStyleSheet("font-size: 12px; font-weight: 700; color: #66707a; letter-spacing: 0.5px;")
 
         self.collection_list = QListWidget()
         self.collection_list.currentItemChanged.connect(self._select_collection)
+        self.collection_list.setSpacing(4)
+        self.collection_list.setStyleSheet("""
+            QListWidget {
+                background: #ffffff;
+                border: none;
+                outline: none;
+                font-size: 14px;
+            }
+            QListWidget::item {
+                background: #f8f9fb;
+                border: 1px solid #edf0f4;
+                border-radius: 10px;
+                padding: 10px 12px;
+                margin: 2px 0;
+            }
+            QListWidget::item:selected {
+                background: #e9eef5;
+                border: 1px solid #d5dde8;
+                color: #1f2933;
+            }
+        """)
 
         self.new_note_button = QPushButton("New Note")
         self.new_note_button.clicked.connect(self._new_note)
+        self.new_note_button.setStyleSheet("""
+            QPushButton {
+                background: #ffffff;
+                color: #344150;
+                border: 1px solid #d9dde3;
+                border-radius: 10px;
+                padding: 10px 14px;
+                font-weight: 600;
+            }
+        """)
 
         self.collection_editor_view = CollectionEditorView()
         self.collection_editor_view.collection_saved.connect(self._handle_collection_saved)
 
-        left_layout.addWidget(self.collection_list)
+        left_card_layout.addWidget(list_label)
+        left_card_layout.addWidget(self.collection_list, 1)
+        left_layout.addWidget(left_card, 1)
         left_layout.addWidget(self.new_note_button)
 
         content_layout.addLayout(left_layout)
-        content_layout.addWidget(self.collection_editor_view)
+        content_layout.addWidget(self.collection_editor_view, 1)
 
         layout.addWidget(title)
+        layout.addWidget(subtitle)
         layout.addLayout(content_layout)
 
     def refresh_collections(self) -> None:
