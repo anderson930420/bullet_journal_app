@@ -50,6 +50,9 @@ class EntryListView(QWidget):
             if rest:
                 item_data["bucket"] = rest[0]
 
+            if len(rest) > 1:
+                item_data["kind"] = rest[1]
+
             text = self._format_item_text(item_data)
 
             item = QListWidgetItem(text)

@@ -11,6 +11,10 @@ from services.capture_service import (
     permanently_remove_entry,
     restore_deleted_entry,
 )
+from services.collections_service import (
+    permanently_remove_collection,
+    restore_deleted_collection,
+)
 from ui.entry_list_view import EntryListView
 
 
@@ -68,7 +72,11 @@ class RecentlyDeletedView(EntryListView):
         if not data:
             return
 
-        restore_deleted_entry(data["id"])
+        if data.get("kind") == "collection":
+            restore_deleted_collection(data["id"])
+        else:
+            restore_deleted_entry(data["id"])
+
         self.refresh_entries()
         self.entries_changed.emit()
 
@@ -76,13 +84,24 @@ class RecentlyDeletedView(EntryListView):
         return fetch_deleted_entries()
 
     def _remove_entry(self, entry_id: int) -> None:
-        permanently_remove_entry(entry_id)
+        data = self._get_current_item_data()
+        if not data:
+            return
+
+        if data.get("kind") == "collection":
+            permanently_remove_collection(entry_id)
+        else:
+            permanently_remove_entry(entry_id)
 
     def _toggle_entry(self, entry_id: int, completed: bool) -> None:
         return None
 
     def _format_item_text(self, data: dict) -> str:
-        text = super()._format_item_text(data)
+        if data.get("kind") == "collection":
+            text = data["content"]
+        else:
+            text = super()._format_item_text(data)
+
         bucket = data.get("bucket", "")
         bucket_label = bucket.capitalize() if bucket else "Entry"
         return f"[{bucket_label}] {text}"

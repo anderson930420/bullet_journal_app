@@ -15,12 +15,14 @@ from PySide6.QtWidgets import (
 from services.collections_service import (
     fetch_collection,
     fetch_collections,
+    remove_collection,
     save_collection,
 )
 
 
 class CollectionEditorView(QWidget):
     collection_saved = Signal(int)
+    collection_deleted = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -85,9 +87,28 @@ class CollectionEditorView(QWidget):
             }
         """)
 
+        self.delete_button = QPushButton("Delete Note")
+        self.delete_button.clicked.connect(self._delete_collection)
+        self.delete_button.setStyleSheet("""
+            QPushButton {
+                background: #ffffff;
+                color: #344150;
+                border: 1px solid #d9dde3;
+                border-radius: 10px;
+                padding: 10px 18px;
+                font-weight: 600;
+                min-width: 110px;
+            }
+        """)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.delete_button)
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.save_button)
+
         editor_layout.addWidget(self.title_input)
         editor_layout.addWidget(self.editor, 1)
-        editor_layout.addWidget(self.save_button, 0, Qt.AlignmentFlag.AlignRight)
+        editor_layout.addLayout(button_layout)
 
         layout.addWidget(editor_card, 1)
 
@@ -100,13 +121,15 @@ class CollectionEditorView(QWidget):
             self.title_input.clear()
             self.editor.clear()
             self.title_input.setEnabled(True)
-            self.editor.setEnabled(False)
-            self.save_button.setEnabled(False)
+            self.editor.setEnabled(True)
+            self.save_button.setEnabled(True)
+            self.delete_button.setEnabled(False)
             return
 
         self.title_input.setEnabled(True)
         self.editor.setEnabled(True)
         self.save_button.setEnabled(True)
+        self.delete_button.setEnabled(True)
 
         row = fetch_collection(self.collection_id)
         if row is None:
@@ -137,7 +160,16 @@ class CollectionEditorView(QWidget):
         self.title_input.setEnabled(True)
         self.editor.setEnabled(True)
         self.save_button.setEnabled(True)
+        self.delete_button.setEnabled(False)
         self.title_input.setFocus()
+
+    def _delete_collection(self) -> None:
+        if self.collection_id is None:
+            return
+
+        remove_collection(self.collection_id)
+        self.start_new_note()
+        self.collection_deleted.emit()
 
 
 class CollectionsView(QWidget):
@@ -216,6 +248,7 @@ class CollectionsView(QWidget):
 
         self.collection_editor_view = CollectionEditorView()
         self.collection_editor_view.collection_saved.connect(self._handle_collection_saved)
+        self.collection_editor_view.collection_deleted.connect(self._handle_collection_deleted)
 
         left_card_layout.addWidget(list_label)
         left_card_layout.addWidget(self.collection_list, 1)
@@ -279,3 +312,6 @@ class CollectionsView(QWidget):
             if data and data["id"] == collection_id:
                 self.collection_list.setCurrentRow(row)
                 break
+
+    def _handle_collection_deleted(self) -> None:
+        self.refresh_collections()

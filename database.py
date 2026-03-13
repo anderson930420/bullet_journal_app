@@ -31,6 +31,8 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         content TEXT DEFAULT '',
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
@@ -52,6 +54,12 @@ def init_db():
 
     if "content" not in collection_columns:
         cursor.execute("ALTER TABLE collections ADD COLUMN content TEXT DEFAULT ''")
+
+    if "is_deleted" not in collection_columns:
+        cursor.execute("ALTER TABLE collections ADD COLUMN is_deleted INTEGER DEFAULT 0")
+
+    if "deleted_at" not in collection_columns:
+        cursor.execute("ALTER TABLE collections ADD COLUMN deleted_at TIMESTAMP")
 
     if "updated_at" not in collection_columns:
         cursor.execute("ALTER TABLE collections ADD COLUMN updated_at TIMESTAMP")
@@ -173,7 +181,7 @@ def get_collections():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, title FROM collections ORDER BY updated_at DESC, id DESC"
+        "SELECT id, title FROM collections WHERE is_deleted = 0 ORDER BY updated_at DESC, id DESC"
     )
 
     rows = cursor.fetchall()
@@ -187,7 +195,7 @@ def get_collection(collection_id):
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, title, content FROM collections WHERE id = ?",
+        "SELECT id, title, content FROM collections WHERE id = ? AND is_deleted = 0",
         (collection_id,)
     )
 
@@ -215,7 +223,16 @@ def get_deleted_entries():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, content, type, completed, bucket FROM entries WHERE is_deleted = 1 ORDER BY deleted_at DESC, id DESC"
+        """
+        SELECT id, content, type, completed, bucket, 'entry' AS kind, deleted_at
+        FROM entries
+        WHERE is_deleted = 1
+        UNION ALL
+        SELECT id, title AS content, 'note' AS type, 0 AS completed, 'collections' AS bucket, 'collection' AS kind, deleted_at
+        FROM collections
+        WHERE is_deleted = 1
+        ORDER BY deleted_at DESC, id DESC
+        """
     )
 
     rows = cursor.fetchall()
@@ -244,6 +261,45 @@ def permanently_delete_entry(entry_id):
     cursor.execute(
         "DELETE FROM entries WHERE id = ? AND is_deleted = 1",
         (entry_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def delete_collection(collection_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE collections SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (collection_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def restore_collection(collection_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE collections SET is_deleted = 0, deleted_at = NULL WHERE id = ?",
+        (collection_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def permanently_delete_collection(collection_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM collections WHERE id = ? AND is_deleted = 1",
+        (collection_id,)
     )
 
     conn.commit()
