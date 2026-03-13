@@ -1,11 +1,10 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QLabel,
-    QMainWindow,
-    QTabWidget,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QLabel, QMainWindow, QTabWidget, QVBoxLayout, QWidget
+
+from ui.collections_view import CollectionsView
+from ui.future_view import FutureView
+from ui.monthly_view import MonthlyView
+from ui.today_view import TodayView
 
 
 class MainWindow(QMainWindow):
@@ -25,23 +24,12 @@ class MainWindow(QMainWindow):
         title_label.setStyleSheet("font-size: 24px; font-weight: bold; padding: 12px;")
 
         tabs = QTabWidget()
-        tabs.addTab(self._build_placeholder_page("Today / Daily Log"), "Today")
-        tabs.addTab(self._build_placeholder_page("Monthly Log"), "Monthly")
-        tabs.addTab(self._build_placeholder_page("Future Log"), "Future")
-        tabs.addTab(self._build_placeholder_page("Collections"), "Collections")
+        tabs.addTab(TodayView(), "Today")
+        tabs.addTab(MonthlyView(), "Monthly")
+        tabs.addTab(FutureView(), "Future")
+        tabs.addTab(CollectionsView(), "Collections")
 
         main_layout.addWidget(title_label)
         main_layout.addWidget(tabs)
 
         self.setCentralWidget(central_widget)
-
-    def _build_placeholder_page(self, text: str) -> QWidget:
-        page = QWidget()
-        layout = QVBoxLayout(page)
-
-        label = QLabel(text)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("font-size: 18px; padding: 24px;")
-
-        layout.addWidget(label)
-        return page
