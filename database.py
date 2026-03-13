@@ -50,3 +50,27 @@ def get_entries():
     conn.close()
 
     return rows
+
+def update_entry_completed(entry_id, completed):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE entries SET completed = ? WHERE id = ?",
+        (completed, entry_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+def delete_entry(entry_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM entries WHERE id = ?",
+        (entry_id,)
+    )
+
+    conn.commit()
+    conn.close()

@@ -1,4 +1,4 @@
-from database import add_entry, get_entries
+from database import add_entry, delete_entry, get_entries, update_entry_completed
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
@@ -65,42 +65,58 @@ class TodayView(QWidget):
         self._refresh_entries()
 
     def _delete_entry(self) -> None:
-        selected = self.entry_list.currentRow()
-        if selected >= 0:
-            self.entry_list.takeItem(selected)
+        item = self.entry_list.currentItem()
+
+        if item is None:
+            return
+
+        data = item.data(Qt.UserRole)
+
+        if not data:
+            return
+
+        entry_id = data["id"]
+        delete_entry(entry_id)
+        self._refresh_entries()
     
-    def _refresh_entries(self):
+    def _refresh_entries(self) -> None:
         self.entry_list.clear()
 
         rows = get_entries()
 
-        for _, content, entry_type, completed in rows:
+        for entry_id, content, entry_type, completed in rows:
             symbol = self._get_symbol(entry_type)
-
             text = f"{symbol} {content}"
 
             if completed:
                 text = f"× {text}"
 
-            self.entry_list.addItem(text)
+            item = QListWidgetItem(text)
+            item.setData(
+                Qt.UserRole,
+                {
+                    "id": entry_id,
+                    "content": content,
+                    "type": entry_type,
+                    "completed": bool(completed),
+                },
+            )
+
+            self.entry_list.addItem(item)
 
     def _toggle_complete(self, item: QListWidgetItem) -> None:
         data = item.data(Qt.UserRole)
+
+        if not data:
+            return
+
+        entry_id = data["id"]
         completed = data["completed"]
 
-        text = item.text()
+        new_completed = not completed
 
-        if completed:
-            # remove ×
-            if text.startswith("× "):
-                text = text[2:]
-        else:
-            # add ×
-            text = "× " + text
-
-        data["completed"] = not completed
-        item.setData(Qt.UserRole, data)
-        item.setText(text)
+        update_entry_completed(entry_id, int(new_completed))
+        self._refresh_entries()
 
     def _get_symbol(self, entry_type: str) -> str:
         symbols = {
