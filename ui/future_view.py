@@ -1,24 +1,18 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QLabel,
-    QListWidget,
-    QListWidgetItem,
     QPushButton,
     QVBoxLayout,
-    QWidget,
 )
 
 from services.capture_service import (
     fetch_future_entries,
     migrate_to_today,
-    remove_entry,
-    toggle_entry,
 )
+from ui.entry_list_view import EntryListView
 
 
-class FutureView(QWidget):
-    entries_changed = Signal()
-
+class FutureView(EntryListView):
     def __init__(self) -> None:
         super().__init__()
         self._setup_ui()
@@ -31,7 +25,7 @@ class FutureView(QWidget):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-size: 18px; font-weight: bold; padding: 12px;")
 
-        self.entry_list = QListWidget()
+        self.entry_list = self._create_list_widget()
         self.entry_list.itemDoubleClicked.connect(self._toggle_complete)
 
         self.migrate_back_button = QPushButton("Move Back to Today")
@@ -45,77 +39,15 @@ class FutureView(QWidget):
         layout.addWidget(self.migrate_back_button)
         layout.addWidget(self.delete_button)
 
-    def refresh_entries(self) -> None:
-        self.entry_list.clear()
-
-        rows = fetch_future_entries()
-
-        for entry_id, content, entry_type, completed in rows:
-            symbol = self._get_symbol(entry_type)
-            text = f"{symbol} {content}"
-
-            if completed:
-                text = f"× {text}"
-
-            item = QListWidgetItem(text)
-            item.setData(
-                Qt.UserRole,
-                {
-                    "id": entry_id,
-                    "content": content,
-                    "type": entry_type,
-                    "completed": bool(completed),
-                },
-            )
-            self.entry_list.addItem(item)
-
     def _move_back_to_today(self) -> None:
-        item = self.entry_list.currentItem()
-        if item is None:
-            return
-
-        data = item.data(Qt.UserRole)
+        data = self._get_current_item_data()
         if not data:
             return
 
-        entry_id = data["id"]
-        migrate_to_today(entry_id)
+        migrate_to_today(data["id"])
 
         self.refresh_entries()
         self.entries_changed.emit()
 
-    def _delete_entry(self) -> None:
-        item = self.entry_list.currentItem()
-        if item is None:
-            return
-
-        data = item.data(Qt.UserRole)
-        if not data:
-            return
-
-        entry_id = data["id"]
-        remove_entry(entry_id)
-
-        self.refresh_entries()
-        self.entries_changed.emit()
-
-    def _toggle_complete(self, item: QListWidgetItem) -> None:
-        data = item.data(Qt.UserRole)
-        if not data:
-            return
-
-        entry_id = data["id"]
-        completed = data["completed"]
-
-        toggle_entry(entry_id, completed)
-
-        self.refresh_entries()
-        self.entries_changed.emit()
-
-    def _get_symbol(self, entry_type: str) -> str:
-        symbols = {
-            "task": "•",
-            "event": "○",
-            "note": "—",
-        }
-        return symbols.get(entry_type, "•")
+    def _fetch_entries(self):
+        return fetch_future_entries()

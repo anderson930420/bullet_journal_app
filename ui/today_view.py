@@ -1,14 +1,11 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
-    QListWidgetItem,
     QPushButton,
     QVBoxLayout,
-    QWidget,
 )
 
 from services.capture_service import (
@@ -16,14 +13,11 @@ from services.capture_service import (
     fetch_entries,
     migrate_to_future,
     migrate_to_monthly,
-    remove_entry,
-    toggle_entry,
 )
+from ui.entry_list_view import EntryListView
 
 
-class TodayView(QWidget):
-    entries_changed = Signal()
-
+class TodayView(EntryListView):
     def __init__(self) -> None:
         super().__init__()
         self._setup_ui()
@@ -51,7 +45,7 @@ class TodayView(QWidget):
         input_layout.addWidget(self.entry_type)
         input_layout.addWidget(self.add_button)
 
-        self.entry_list = QListWidget()
+        self.entry_list = self._create_list_widget()
         self.entry_list.itemDoubleClicked.connect(self._toggle_complete)
 
         self.delete_button = QPushButton("Delete Selected")
@@ -83,92 +77,25 @@ class TodayView(QWidget):
         self.refresh_entries()
         self.entries_changed.emit()
 
-    def _delete_entry(self) -> None:
-        item = self.entry_list.currentItem()
-        if item is None:
-            return
-
-        data = item.data(Qt.UserRole)
-        if not data:
-            return
-
-        entry_id = data["id"]
-        remove_entry(entry_id)
-
-        self.refresh_entries()
-        self.entries_changed.emit()
-
-    def _toggle_complete(self, item: QListWidgetItem) -> None:
-        data = item.data(Qt.UserRole)
-        if not data:
-            return
-
-        entry_id = data["id"]
-        completed = data["completed"]
-
-        toggle_entry(entry_id, completed)
-
-        self.refresh_entries()
-        self.entries_changed.emit()
-
     def _migrate_entry(self) -> None:
-        item = self.entry_list.currentItem()
-        if item is None:
-            return
-
-        data = item.data(Qt.UserRole)
+        data = self._get_current_item_data()
         if not data:
             return
 
-        entry_id = data["id"]
-        migrate_to_future(entry_id)
+        migrate_to_future(data["id"])
 
         self.refresh_entries()
         self.entries_changed.emit()
 
     def _migrate_to_monthly(self) -> None:
-        item = self.entry_list.currentItem()
-        if item is None:
-            return
-
-        data = item.data(Qt.UserRole)
+        data = self._get_current_item_data()
         if not data:
             return
 
-        entry_id = data["id"]
-        migrate_to_monthly(entry_id)
+        migrate_to_monthly(data["id"])
 
         self.refresh_entries()
         self.entries_changed.emit()
 
-    def refresh_entries(self) -> None:
-        self.entry_list.clear()
-
-        rows = fetch_entries()
-
-        for entry_id, content, entry_type, completed in rows:
-            symbol = self._get_symbol(entry_type)
-            text = f"{symbol} {content}"
-
-            if completed:
-                text = f"× {text}"
-
-            item = QListWidgetItem(text)
-            item.setData(
-                Qt.UserRole,
-                {
-                    "id": entry_id,
-                    "content": content,
-                    "type": entry_type,
-                    "completed": bool(completed),
-                },
-            )
-            self.entry_list.addItem(item)
-
-    def _get_symbol(self, entry_type: str) -> str:
-        symbols = {
-            "task": "•",
-            "event": "○",
-            "note": "—",
-        }
-        return symbols.get(entry_type, "•")
+    def _fetch_entries(self):
+        return fetch_entries()
