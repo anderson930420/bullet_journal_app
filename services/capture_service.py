@@ -1,10 +1,13 @@
 from database import (
     add_entry,
     delete_entry,
+    get_deleted_entries,
     get_entries,
     get_future_entries,
     get_monthly_entries,
     migrate_entry,
+    permanently_delete_entry,
+    restore_entry,
     update_entry_completed,
 )
 
@@ -33,6 +36,10 @@ def fetch_monthly_entries():
     return get_monthly_entries()
 
 
+def fetch_deleted_entries():
+    return get_deleted_entries()
+
+
 def toggle_entry(entry_id: int, completed: bool):
     new_completed = not completed
     update_entry_completed(entry_id, int(new_completed))
@@ -40,6 +47,14 @@ def toggle_entry(entry_id: int, completed: bool):
 
 def remove_entry(entry_id: int):
     delete_entry(entry_id)
+
+
+def restore_deleted_entry(entry_id: int):
+    restore_entry(entry_id)
+
+
+def permanently_remove_entry(entry_id: int):
+    permanently_delete_entry(entry_id)
 
 
 def migrate_to_future(entry_id: int):

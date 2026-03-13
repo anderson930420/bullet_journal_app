@@ -20,6 +20,8 @@ def init_db():
         bucket TEXT DEFAULT 'today',
         collection_id INTEGER,
         completed INTEGER DEFAULT 0,
+        is_deleted INTEGER DEFAULT 0,
+        deleted_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
@@ -38,6 +40,12 @@ def init_db():
 
     if "collection_id" not in columns:
         cursor.execute("ALTER TABLE entries ADD COLUMN collection_id INTEGER")
+
+    if "is_deleted" not in columns:
+        cursor.execute("ALTER TABLE entries ADD COLUMN is_deleted INTEGER DEFAULT 0")
+
+    if "deleted_at" not in columns:
+        cursor.execute("ALTER TABLE entries ADD COLUMN deleted_at TIMESTAMP")
 
     cursor.execute("PRAGMA table_info(collections)")
     collection_columns = [row[1] for row in cursor.fetchall()]
@@ -69,7 +77,7 @@ def get_entries():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, content, type, completed FROM entries WHERE bucket = 'today' ORDER BY id DESC"
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'today' AND is_deleted = 0 ORDER BY id DESC"
     )
 
     rows = cursor.fetchall()
@@ -94,7 +102,7 @@ def delete_entry(entry_id):
     cursor = conn.cursor()
 
     cursor.execute(
-        "DELETE FROM entries WHERE id = ?",
+        "UPDATE entries SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
         (entry_id,)
     )
 
@@ -121,7 +129,7 @@ def get_future_entries():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, content, type, completed FROM entries WHERE bucket = 'future' ORDER BY id DESC"
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'future' AND is_deleted = 0 ORDER BY id DESC"
     )
 
     rows = cursor.fetchall()
@@ -135,7 +143,7 @@ def get_monthly_entries():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, content, type, completed FROM entries WHERE bucket = 'monthly' ORDER BY id DESC"
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'monthly' AND is_deleted = 0 ORDER BY id DESC"
     )
 
     rows = cursor.fetchall()
@@ -196,6 +204,46 @@ def update_collection(collection_id, title, content):
     cursor.execute(
         "UPDATE collections SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
         (title, content, collection_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def get_deleted_entries():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT id, content, type, completed, bucket FROM entries WHERE is_deleted = 1 ORDER BY deleted_at DESC, id DESC"
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return rows
+
+
+def restore_entry(entry_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE entries SET is_deleted = 0, deleted_at = NULL WHERE id = ?",
+        (entry_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def permanently_delete_entry(entry_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM entries WHERE id = ? AND is_deleted = 1",
+        (entry_id,)
     )
 
     conn.commit()

@@ -37,22 +37,25 @@ class EntryListView(QWidget):
 
         rows = self._fetch_entries()
 
-        for entry_id, content, entry_type, completed in rows:
-            symbol = self._get_symbol(entry_type)
-            text = f"{symbol} {content}"
+        for row in rows:
+            entry_id, content, entry_type, completed, *rest = row
 
-            if completed:
-                text = f"× {text}"
+            item_data = {
+                "id": entry_id,
+                "content": content,
+                "type": entry_type,
+                "completed": bool(completed),
+            }
+
+            if rest:
+                item_data["bucket"] = rest[0]
+
+            text = self._format_item_text(item_data)
 
             item = QListWidgetItem(text)
             item.setData(
                 Qt.UserRole,
-                {
-                    "id": entry_id,
-                    "content": content,
-                    "type": entry_type,
-                    "completed": bool(completed),
-                },
+                item_data,
             )
             self.entry_list.addItem(item)
 
@@ -99,3 +102,12 @@ class EntryListView(QWidget):
             "note": "—",
         }
         return symbols.get(entry_type, "•")
+
+    def _format_item_text(self, data: dict) -> str:
+        symbol = self._get_symbol(data["type"])
+        text = f"{symbol} {data['content']}"
+
+        if data["completed"]:
+            text = f"× {text}"
+
+        return text

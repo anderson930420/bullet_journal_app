@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from ui.collections_view import CollectionsView
 from ui.future_view import FutureView
 from ui.monthly_view import MonthlyView
+from ui.recently_deleted_view import RecentlyDeletedView
 from ui.today_view import TodayView
 
 
@@ -88,6 +89,7 @@ class MainWindow(QMainWindow):
         self.monthly_view = MonthlyView()
         self.future_view = FutureView()
         self.collections_view = CollectionsView()
+        self.recently_deleted_view = RecentlyDeletedView()
 
         self.content_stack = QStackedWidget()
         self.content_stack.setStyleSheet("""
@@ -102,6 +104,7 @@ class MainWindow(QMainWindow):
         self._add_navigation_item("Monthly", self.monthly_view)
         self._add_navigation_item("Future", self.future_view)
         self._add_navigation_item("Collections", self.collections_view)
+        self._add_navigation_item("Recently Deleted", self.recently_deleted_view)
 
         sidebar_layout.addWidget(sidebar_label)
         sidebar_layout.addWidget(self.sidebar, 1)
@@ -125,6 +128,7 @@ class MainWindow(QMainWindow):
         self.today_view.entries_changed.connect(self._refresh_all_views)
         self.monthly_view.entries_changed.connect(self._refresh_all_views)
         self.future_view.entries_changed.connect(self._refresh_all_views)
+        self.recently_deleted_view.entries_changed.connect(self._refresh_all_views)
         self.sidebar.currentRowChanged.connect(self._change_view)
 
     def _change_view(self, index: int) -> None:
@@ -138,9 +142,11 @@ class MainWindow(QMainWindow):
         self.today_view.refresh_entries()
         self.monthly_view.refresh_entries()
         self.future_view.refresh_entries()
+        self.recently_deleted_view.refresh_entries()
 
     def _refresh_current_views(self) -> None:
         self.today_view.refresh_entries()
         self.monthly_view.refresh_entries()
         self.future_view.refresh_entries()
         self.collections_view.refresh_collections()
+        self.recently_deleted_view.refresh_entries()
