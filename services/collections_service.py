@@ -5,6 +5,7 @@ from database import (
     get_collections,
     permanently_delete_collection,
     restore_collection,
+    update_collection_order,
     update_collection,
 )
 
@@ -35,3 +36,7 @@ def restore_deleted_collection(collection_id: int):
 
 def permanently_remove_collection(collection_id: int):
     permanently_delete_collection(collection_id)
+
+
+def reorder_collections(collection_ids: list[int]):
+    update_collection_order(collection_ids)

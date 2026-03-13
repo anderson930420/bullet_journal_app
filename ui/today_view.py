@@ -14,6 +14,7 @@ from services.capture_service import (
     fetch_entries,
     migrate_to_future,
     migrate_to_monthly,
+    reorder_entries,
     remove_entry,
     toggle_entry,
 )
@@ -91,7 +92,7 @@ class TodayView(EntryListView):
         input_layout.addWidget(self.entry_type)
         input_layout.addWidget(self.add_button)
 
-        self.entry_list = self._create_list_widget()
+        self.entry_list = self._create_list_widget(reorderable=True)
         self.entry_list.itemDoubleClicked.connect(self._toggle_complete)
 
         actions_layout = QHBoxLayout()
@@ -172,3 +173,6 @@ class TodayView(EntryListView):
 
     def _toggle_entry(self, entry_id: int, completed: bool) -> None:
         toggle_entry(entry_id, completed)
+
+    def _save_order(self, item_ids: list[int]) -> None:
+        reorder_entries("today", item_ids)

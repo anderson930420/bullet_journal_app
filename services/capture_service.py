@@ -8,6 +8,7 @@ from database import (
     migrate_entry,
     permanently_delete_entry,
     restore_entry,
+    update_entry_order,
     update_entry_completed,
 )
 
@@ -55,6 +56,10 @@ def restore_deleted_entry(entry_id: int):
 
 def permanently_remove_entry(entry_id: int):
     permanently_delete_entry(entry_id)
+
+
+def reorder_entries(bucket: str, entry_ids: list[int]):
+    update_entry_order(bucket, entry_ids)
 
 
 def migrate_to_future(entry_id: int):

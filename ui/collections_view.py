@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from services.collections_service import (
     fetch_collection,
     fetch_collections,
+    reorder_collections,
     remove_collection,
     save_collection,
 )
@@ -211,6 +212,11 @@ class CollectionsView(QWidget):
 
         self.collection_list = QListWidget()
         self.collection_list.currentItemChanged.connect(self._select_collection)
+        self.collection_list.setDragDropMode(QListWidget.DragDropMode.InternalMove)
+        self.collection_list.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.collection_list.setDragEnabled(True)
+        self.collection_list.setAcceptDrops(True)
+        self.collection_list.setDropIndicatorShown(True)
         self.collection_list.setSpacing(4)
         self.collection_list.setStyleSheet("""
             QListWidget {
@@ -232,6 +238,7 @@ class CollectionsView(QWidget):
                 color: #1f2933;
             }
         """)
+        self.collection_list.model().rowsMoved.connect(self._save_collection_order)
 
         self.new_note_button = QPushButton("New Note")
         self.new_note_button.clicked.connect(self._new_note)
@@ -315,3 +322,17 @@ class CollectionsView(QWidget):
 
     def _handle_collection_deleted(self) -> None:
         self.refresh_collections()
+
+    def _save_collection_order(self, *args) -> None:
+        collection_ids = []
+
+        for row in range(self.collection_list.count()):
+            item = self.collection_list.item(row)
+            data = item.data(Qt.UserRole)
+            if data:
+                collection_ids.append(data["id"])
+
+        if not collection_ids:
+            return
+
+        reorder_collections(collection_ids)

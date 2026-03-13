@@ -2,11 +2,19 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QWidget
 
 
+class ReorderableListWidget(QListWidget):
+    order_changed = Signal()
+
+    def dropEvent(self, event) -> None:
+        super().dropEvent(event)
+        self.order_changed.emit()
+
+
 class EntryListView(QWidget):
     entries_changed = Signal()
 
-    def _create_list_widget(self) -> QListWidget:
-        entry_list = QListWidget()
+    def _create_list_widget(self, reorderable: bool = False) -> QListWidget:
+        entry_list = ReorderableListWidget() if reorderable else QListWidget()
         entry_list.setSpacing(6)
         entry_list.setStyleSheet("""
             QListWidget {
@@ -30,6 +38,15 @@ class EntryListView(QWidget):
                 color: #1f2933;
             }
         """)
+
+        if reorderable:
+            entry_list.setDragDropMode(QListWidget.DragDropMode.InternalMove)
+            entry_list.setDefaultDropAction(Qt.DropAction.MoveAction)
+            entry_list.setDragEnabled(True)
+            entry_list.setAcceptDrops(True)
+            entry_list.setDropIndicatorShown(True)
+            entry_list.order_changed.connect(self._handle_reorder)
+
         return entry_list
 
     def refresh_entries(self) -> None:
@@ -114,3 +131,22 @@ class EntryListView(QWidget):
             text = f"× {text}"
 
         return text
+
+    def _handle_reorder(self) -> None:
+        item_ids = []
+
+        for index in range(self.entry_list.count()):
+            item = self.entry_list.item(index)
+            data = item.data(Qt.UserRole)
+            if data:
+                item_ids.append(data["id"])
+
+        if not item_ids:
+            return
+
+        self._save_order(item_ids)
+        self.refresh_entries()
+        self.entries_changed.emit()
+
+    def _save_order(self, item_ids: list[int]) -> None:
+        raise NotImplementedError

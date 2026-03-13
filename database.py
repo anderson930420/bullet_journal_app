@@ -22,6 +22,7 @@ def init_db():
         completed INTEGER DEFAULT 0,
         is_deleted INTEGER DEFAULT 0,
         deleted_at TIMESTAMP,
+        sort_order INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
@@ -33,6 +34,7 @@ def init_db():
         content TEXT DEFAULT '',
         is_deleted INTEGER DEFAULT 0,
         deleted_at TIMESTAMP,
+        sort_order INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
@@ -49,6 +51,22 @@ def init_db():
     if "deleted_at" not in columns:
         cursor.execute("ALTER TABLE entries ADD COLUMN deleted_at TIMESTAMP")
 
+    if "sort_order" not in columns:
+        cursor.execute("ALTER TABLE entries ADD COLUMN sort_order INTEGER")
+
+    cursor.execute(
+        "SELECT id, bucket FROM entries WHERE sort_order IS NULL ORDER BY bucket, id DESC"
+    )
+    entry_rows = cursor.fetchall()
+    bucket_positions = {}
+    for entry_id, bucket in entry_rows:
+        position = bucket_positions.get(bucket, 0)
+        cursor.execute(
+            "UPDATE entries SET sort_order = ? WHERE id = ?",
+            (position, entry_id)
+        )
+        bucket_positions[bucket] = position + 1
+
     cursor.execute("PRAGMA table_info(collections)")
     collection_columns = [row[1] for row in cursor.fetchall()]
 
@@ -64,6 +82,19 @@ def init_db():
     if "updated_at" not in collection_columns:
         cursor.execute("ALTER TABLE collections ADD COLUMN updated_at TIMESTAMP")
 
+    if "sort_order" not in collection_columns:
+        cursor.execute("ALTER TABLE collections ADD COLUMN sort_order INTEGER")
+
+    cursor.execute(
+        "SELECT id FROM collections WHERE sort_order IS NULL ORDER BY updated_at DESC, id DESC"
+    )
+    collection_rows = cursor.fetchall()
+    for position, (collection_id,) in enumerate(collection_rows):
+        cursor.execute(
+            "UPDATE collections SET sort_order = ? WHERE id = ?",
+            (position, collection_id)
+        )
+
     conn.commit()
     conn.close()
 
@@ -72,8 +103,15 @@ def add_entry(content, entry_type, bucket="today"):
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO entries (content, type, bucket) VALUES (?, ?, ?)",
-        (content, entry_type, bucket)
+        "SELECT MIN(sort_order) FROM entries WHERE bucket = ? AND is_deleted = 0",
+        (bucket,)
+    )
+    min_order = cursor.fetchone()[0]
+    sort_order = 0 if min_order is None else min_order - 1
+
+    cursor.execute(
+        "INSERT INTO entries (content, type, bucket, sort_order) VALUES (?, ?, ?, ?)",
+        (content, entry_type, bucket, sort_order)
     )
 
     conn.commit()
@@ -85,7 +123,7 @@ def get_entries():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, content, type, completed FROM entries WHERE bucket = 'today' AND is_deleted = 0 ORDER BY id DESC"
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'today' AND is_deleted = 0 ORDER BY sort_order ASC, id DESC"
     )
 
     rows = cursor.fetchall()
@@ -137,7 +175,7 @@ def get_future_entries():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, content, type, completed FROM entries WHERE bucket = 'future' AND is_deleted = 0 ORDER BY id DESC"
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'future' AND is_deleted = 0 ORDER BY sort_order ASC, id DESC"
     )
 
     rows = cursor.fetchall()
@@ -151,7 +189,7 @@ def get_monthly_entries():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, content, type, completed FROM entries WHERE bucket = 'monthly' AND is_deleted = 0 ORDER BY id DESC"
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'monthly' AND is_deleted = 0 ORDER BY sort_order ASC, id DESC"
     )
 
     rows = cursor.fetchall()
@@ -165,8 +203,14 @@ def add_collection(title, content=""):
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO collections (title, content, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
-        (title, content)
+        "SELECT MIN(sort_order) FROM collections WHERE is_deleted = 0"
+    )
+    min_order = cursor.fetchone()[0]
+    sort_order = 0 if min_order is None else min_order - 1
+
+    cursor.execute(
+        "INSERT INTO collections (title, content, updated_at, sort_order) VALUES (?, ?, CURRENT_TIMESTAMP, ?)",
+        (title, content, sort_order)
     )
 
     collection_id = cursor.lastrowid
@@ -181,7 +225,7 @@ def get_collections():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, title FROM collections WHERE is_deleted = 0 ORDER BY updated_at DESC, id DESC"
+        "SELECT id, title FROM collections WHERE is_deleted = 0 ORDER BY sort_order ASC, id DESC"
     )
 
     rows = cursor.fetchall()
@@ -301,6 +345,34 @@ def permanently_delete_collection(collection_id):
         "DELETE FROM collections WHERE id = ? AND is_deleted = 1",
         (collection_id,)
     )
+
+    conn.commit()
+    conn.close()
+
+
+def update_entry_order(bucket, entry_ids):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    for position, entry_id in enumerate(entry_ids):
+        cursor.execute(
+            "UPDATE entries SET sort_order = ? WHERE id = ? AND bucket = ?",
+            (position, entry_id, bucket)
+        )
+
+    conn.commit()
+    conn.close()
+
+
+def update_collection_order(collection_ids):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    for position, collection_id in enumerate(collection_ids):
+        cursor.execute(
+            "UPDATE collections SET sort_order = ? WHERE id = ?",
+            (position, collection_id)
+        )
 
     conn.commit()
     conn.close()

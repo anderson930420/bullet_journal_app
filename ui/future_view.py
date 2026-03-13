@@ -14,6 +14,7 @@ from services.capture_service import (
     fetch_future_entries,
     migrate_to_monthly,
     migrate_to_today,
+    reorder_entries,
     remove_entry,
     toggle_entry,
 )
@@ -65,7 +66,7 @@ class FutureView(EntryListView):
         input_layout.addWidget(self.entry_type)
         input_layout.addWidget(self.add_button)
 
-        self.entry_list = self._create_list_widget()
+        self.entry_list = self._create_list_widget(reorderable=True)
         self.entry_list.itemDoubleClicked.connect(self._toggle_complete)
 
         self.move_to_today_button = QPushButton("Move to Today")
@@ -180,3 +181,6 @@ class FutureView(EntryListView):
 
     def _toggle_entry(self, entry_id: int, completed: bool) -> None:
         toggle_entry(entry_id, completed)
+
+    def _save_order(self, item_ids: list[int]) -> None:
+        reorder_entries("future", item_ids)
