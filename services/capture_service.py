@@ -16,6 +16,10 @@ def fetch_entries():
     return get_entries()
 
 
+def fetch_future_entries():
+    return get_future_entries()
+
+
 def toggle_entry(entry_id: int, completed: bool):
     new_completed = not completed
     update_entry_completed(entry_id, int(new_completed))
@@ -24,8 +28,10 @@ def toggle_entry(entry_id: int, completed: bool):
 def remove_entry(entry_id: int):
     delete_entry(entry_id)
 
+
 def migrate_to_future(entry_id: int):
     migrate_entry(entry_id, "future")
 
-def fetch_future_entries():
-    return get_future_entries()
+
+def migrate_to_today(entry_id: int):
+    migrate_entry(entry_id, "today")

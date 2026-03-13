@@ -1,10 +1,4 @@
-from services.capture_service import (
-    create_entry,
-    fetch_entries,
-    remove_entry,
-    toggle_entry,
-)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -17,12 +11,22 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from services.capture_service import (
+    create_entry,
+    fetch_entries,
+    migrate_to_future,
+    remove_entry,
+    toggle_entry,
+)
+
 
 class TodayView(QWidget):
+    entries_changed = Signal()
+
     def __init__(self) -> None:
         super().__init__()
         self._setup_ui()
-        self._refresh_entries()
+        self.refresh_entries()
 
     def _setup_ui(self) -> None:
         main_layout = QVBoxLayout(self)
@@ -55,11 +59,11 @@ class TodayView(QWidget):
         self.migrate_button = QPushButton("Migrate to Future")
         self.migrate_button.clicked.connect(self._migrate_entry)
 
-        main_layout.addWidget(self.migrate_button)
         main_layout.addWidget(title_label)
         main_layout.addLayout(input_layout)
         main_layout.addWidget(self.entry_list)
         main_layout.addWidget(self.delete_button)
+        main_layout.addWidget(self.migrate_button)
 
     def _add_entry(self) -> None:
         content = self.entry_input.text().strip()
@@ -71,24 +75,53 @@ class TodayView(QWidget):
         create_entry(content, entry_type)
 
         self.entry_input.clear()
-        self._refresh_entries()
+        self.refresh_entries()
+        self.entries_changed.emit()
 
     def _delete_entry(self) -> None:
         item = self.entry_list.currentItem()
-
         if item is None:
             return
 
         data = item.data(Qt.UserRole)
-
         if not data:
             return
 
         entry_id = data["id"]
         remove_entry(entry_id)
-        self._refresh_entries()
-    
-    def _refresh_entries(self) -> None:
+
+        self.refresh_entries()
+        self.entries_changed.emit()
+
+    def _toggle_complete(self, item: QListWidgetItem) -> None:
+        data = item.data(Qt.UserRole)
+        if not data:
+            return
+
+        entry_id = data["id"]
+        completed = data["completed"]
+
+        toggle_entry(entry_id, completed)
+
+        self.refresh_entries()
+        self.entries_changed.emit()
+
+    def _migrate_entry(self) -> None:
+        item = self.entry_list.currentItem()
+        if item is None:
+            return
+
+        data = item.data(Qt.UserRole)
+        if not data:
+            return
+
+        entry_id = data["id"]
+        migrate_to_future(entry_id)
+
+        self.refresh_entries()
+        self.entries_changed.emit()
+
+    def refresh_entries(self) -> None:
         self.entry_list.clear()
 
         rows = fetch_entries()
@@ -110,22 +143,7 @@ class TodayView(QWidget):
                     "completed": bool(completed),
                 },
             )
-
             self.entry_list.addItem(item)
-
-    def _toggle_complete(self, item: QListWidgetItem) -> None:
-        data = item.data(Qt.UserRole)
-
-        if not data:
-            return
-
-        entry_id = data["id"]
-        completed = data["completed"]
-
-        new_completed = not completed
-
-        toggle_entry(entry_id, completed)
-        self._refresh_entries()
 
     def _get_symbol(self, entry_type: str) -> str:
         symbols = {
@@ -134,20 +152,3 @@ class TodayView(QWidget):
             "note": "—",
         }
         return symbols.get(entry_type, "•")
-    
-    def _migrate_entry(self) -> None:
-        item = self.entry_list.currentItem()
-
-        if item is None:
-            return
-
-        data = item.data(Qt.UserRole)
-        if not data:
-            return
-
-        entry_id = data["id"]
-
-        from services.capture_service import migrate_to_future
-        migrate_to_future(entry_id)
-
-        self._refresh_entries()
