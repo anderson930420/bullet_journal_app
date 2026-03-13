@@ -43,13 +43,16 @@ class MainWindow(QMainWindow):
 
     def _connect_signals(self) -> None:
         self.today_view.entries_changed.connect(self._refresh_all_views)
+        self.monthly_view.entries_changed.connect(self._refresh_all_views)
         self.future_view.entries_changed.connect(self._refresh_all_views)
         self.tabs.currentChanged.connect(self._refresh_current_views)
 
     def _refresh_all_views(self) -> None:
         self.today_view.refresh_entries()
+        self.monthly_view.refresh_entries()
         self.future_view.refresh_entries()
 
     def _refresh_current_views(self) -> None:
         self.today_view.refresh_entries()
+        self.monthly_view.refresh_entries()
         self.future_view.refresh_entries()

@@ -103,3 +103,17 @@ def get_future_entries():
     conn.close()
 
     return rows
+
+
+def get_monthly_entries():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'monthly' ORDER BY id DESC"
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return rows

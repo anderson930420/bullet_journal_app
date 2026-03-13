@@ -15,6 +15,7 @@ from services.capture_service import (
     create_entry,
     fetch_entries,
     migrate_to_future,
+    migrate_to_monthly,
     remove_entry,
     toggle_entry,
 )
@@ -59,11 +60,15 @@ class TodayView(QWidget):
         self.migrate_button = QPushButton("Migrate to Future")
         self.migrate_button.clicked.connect(self._migrate_entry)
 
+        self.monthly_button = QPushButton("Migrate to Monthly")
+        self.monthly_button.clicked.connect(self._migrate_to_monthly)
+
         main_layout.addWidget(title_label)
         main_layout.addLayout(input_layout)
         main_layout.addWidget(self.entry_list)
         main_layout.addWidget(self.delete_button)
         main_layout.addWidget(self.migrate_button)
+        main_layout.addWidget(self.monthly_button)
 
     def _add_entry(self) -> None:
         content = self.entry_input.text().strip()
@@ -117,6 +122,21 @@ class TodayView(QWidget):
 
         entry_id = data["id"]
         migrate_to_future(entry_id)
+
+        self.refresh_entries()
+        self.entries_changed.emit()
+
+    def _migrate_to_monthly(self) -> None:
+        item = self.entry_list.currentItem()
+        if item is None:
+            return
+
+        data = item.data(Qt.UserRole)
+        if not data:
+            return
+
+        entry_id = data["id"]
+        migrate_to_monthly(entry_id)
 
         self.refresh_entries()
         self.entries_changed.emit()
