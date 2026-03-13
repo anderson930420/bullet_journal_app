@@ -52,6 +52,10 @@ class TodayView(QWidget):
         self.delete_button = QPushButton("Delete Selected")
         self.delete_button.clicked.connect(self._delete_entry)
 
+        self.migrate_button = QPushButton("Migrate to Future")
+        self.migrate_button.clicked.connect(self._migrate_entry)
+
+        main_layout.addWidget(self.migrate_button)
         main_layout.addWidget(title_label)
         main_layout.addLayout(input_layout)
         main_layout.addWidget(self.entry_list)
@@ -130,3 +134,18 @@ class TodayView(QWidget):
             "note": "—",
         }
         return symbols.get(entry_type, "•")
+    
+    def _migrate_entry(self):
+        item = self.entry_list.currentItem()
+
+        if not item:
+            return
+
+        data = item.data(Qt.UserRole)
+        entry_id = data["id"]
+
+        from services.capture_service import migrate_to_future
+
+        migrate_to_future(entry_id)
+
+        self._refresh_entries()

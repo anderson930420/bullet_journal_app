@@ -17,6 +17,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         content TEXT NOT NULL,
         type TEXT NOT NULL,
+        bucket TEXT DEFAULT 'today',
         completed INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -30,7 +31,7 @@ def add_entry(content, entry_type):
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO entries (content, type) VALUES (?, ?)",
+        "INSERT INTO entries (content, type, bucket) VALUES (?, ?, 'today')",
         (content, entry_type)
     )
 
@@ -43,7 +44,7 @@ def get_entries():
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT id, content, type, completed FROM entries ORDER BY id DESC"
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'today' ORDER BY id DESC"
     )
 
     rows = cursor.fetchall()
@@ -74,3 +75,18 @@ def delete_entry(entry_id):
 
     conn.commit()
     conn.close()
+
+def migrate_entry(entry_id, bucket):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE entries SET bucket = ? WHERE id = ?",
+        (bucket, entry_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+def migrate_to_future(entry_id):
+    migrate_entry(entry_id, "future")
