@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QListWidget,
+    QListWidgetItem,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -39,10 +40,15 @@ class TodayView(QWidget):
         input_layout.addWidget(self.add_button)
 
         self.entry_list = QListWidget()
+        self.entry_list.itemDoubleClicked.connect(self._toggle_complete)
+
+        self.delete_button = QPushButton("Delete Selected")
+        self.delete_button.clicked.connect(self._delete_entry)
 
         main_layout.addWidget(title_label)
         main_layout.addLayout(input_layout)
         main_layout.addWidget(self.entry_list)
+        main_layout.addWidget(self.delete_button)
 
     def _add_entry(self) -> None:
         content = self.entry_input.text().strip()
@@ -52,10 +58,37 @@ class TodayView(QWidget):
             return
 
         symbol = self._get_symbol(entry_type)
-        self.entry_list.addItem(f"{symbol} {content}")
+
+        item = QListWidgetItem(f"{symbol} {content}")
+        item.setData(Qt.UserRole, {"completed": False})
+
+        self.entry_list.addItem(item)
 
         self.entry_input.clear()
         self.entry_input.setFocus()
+
+    def _delete_entry(self) -> None:
+        selected = self.entry_list.currentRow()
+        if selected >= 0:
+            self.entry_list.takeItem(selected)
+
+    def _toggle_complete(self, item: QListWidgetItem) -> None:
+        data = item.data(Qt.UserRole)
+        completed = data["completed"]
+
+        text = item.text()
+
+        if completed:
+            # remove ×
+            if text.startswith("× "):
+                text = text[2:]
+        else:
+            # add ×
+            text = "× " + text
+
+        data["completed"] = not completed
+        item.setData(Qt.UserRole, data)
+        item.setText(text)
 
     def _get_symbol(self, entry_type: str) -> str:
         symbols = {
