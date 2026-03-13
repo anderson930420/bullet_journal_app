@@ -1,9 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QWidget
 
-from services.capture_service import remove_entry, toggle_entry
-
-
 class EntryListView(QWidget):
     entries_changed = Signal()
 
@@ -39,7 +36,7 @@ class EntryListView(QWidget):
         if not data:
             return
 
-        remove_entry(data["id"])
+        self._remove_entry(data["id"])
 
         self.refresh_entries()
         self.entries_changed.emit()
@@ -49,7 +46,7 @@ class EntryListView(QWidget):
         if not data:
             return
 
-        toggle_entry(data["id"], data["completed"])
+        self._toggle_entry(data["id"], data["completed"])
 
         self.refresh_entries()
         self.entries_changed.emit()
@@ -62,6 +59,12 @@ class EntryListView(QWidget):
         return item.data(Qt.UserRole)
 
     def _fetch_entries(self):
+        raise NotImplementedError
+
+    def _remove_entry(self, entry_id: int) -> None:
+        raise NotImplementedError
+
+    def _toggle_entry(self, entry_id: int, completed: bool) -> None:
         raise NotImplementedError
 
     def _get_symbol(self, entry_type: str) -> str:

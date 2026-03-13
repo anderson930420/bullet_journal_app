@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
 from services.capture_service import (
     fetch_monthly_entries,
     migrate_to_today,
+    remove_entry,
+    toggle_entry,
 )
 from ui.entry_list_view import EntryListView
 
@@ -51,3 +53,9 @@ class MonthlyView(EntryListView):
 
     def _fetch_entries(self):
         return fetch_monthly_entries()
+
+    def _remove_entry(self, entry_id: int) -> None:
+        remove_entry(entry_id)
+
+    def _toggle_entry(self, entry_id: int, completed: bool) -> None:
+        toggle_entry(entry_id, completed)

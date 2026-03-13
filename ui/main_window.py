@@ -56,3 +56,4 @@ class MainWindow(QMainWindow):
         self.today_view.refresh_entries()
         self.monthly_view.refresh_entries()
         self.future_view.refresh_entries()
+        self.collections_view.refresh_collections()

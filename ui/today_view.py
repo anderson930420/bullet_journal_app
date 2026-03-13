@@ -13,6 +13,8 @@ from services.capture_service import (
     fetch_entries,
     migrate_to_future,
     migrate_to_monthly,
+    remove_entry,
+    toggle_entry,
 )
 from ui.entry_list_view import EntryListView
 
@@ -99,3 +101,9 @@ class TodayView(EntryListView):
 
     def _fetch_entries(self):
         return fetch_entries()
+
+    def _remove_entry(self, entry_id: int) -> None:
+        remove_entry(entry_id)
+
+    def _toggle_entry(self, entry_id: int, completed: bool) -> None:
+        toggle_entry(entry_id, completed)
