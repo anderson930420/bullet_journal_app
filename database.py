@@ -90,3 +90,16 @@ def migrate_entry(entry_id, bucket):
 
 def migrate_to_future(entry_id):
     migrate_entry(entry_id, "future")
+
+def get_future_entries():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT id, content, type, completed FROM entries WHERE bucket = 'future' ORDER BY id DESC"
+    )
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return rows
