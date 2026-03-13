@@ -97,21 +97,21 @@ class TodayView(EntryListView):
         actions_layout = QHBoxLayout()
         actions_layout.setSpacing(10)
 
-        self.delete_button = QPushButton("Delete Selected")
-        self.delete_button.clicked.connect(self._delete_entry)
-        self.delete_button.setStyleSheet(self._secondary_button_style())
+        self.monthly_button = QPushButton("Migrate to Monthly")
+        self.monthly_button.clicked.connect(self._migrate_to_monthly)
+        self.monthly_button.setStyleSheet(self._secondary_button_style())
 
         self.migrate_button = QPushButton("Migrate to Future")
         self.migrate_button.clicked.connect(self._migrate_entry)
         self.migrate_button.setStyleSheet(self._secondary_button_style())
 
-        self.monthly_button = QPushButton("Migrate to Monthly")
-        self.monthly_button.clicked.connect(self._migrate_to_monthly)
-        self.monthly_button.setStyleSheet(self._secondary_button_style())
+        self.delete_button = QPushButton("Delete Selected")
+        self.delete_button.clicked.connect(self._delete_entry)
+        self.delete_button.setStyleSheet(self._secondary_button_style())
 
-        actions_layout.addWidget(self.delete_button)
-        actions_layout.addWidget(self.migrate_button)
         actions_layout.addWidget(self.monthly_button)
+        actions_layout.addWidget(self.migrate_button)
+        actions_layout.addWidget(self.delete_button)
 
         main_layout.addWidget(title_label)
         main_layout.addWidget(subtitle_label)

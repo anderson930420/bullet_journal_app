@@ -13,6 +13,14 @@ def create_entry(content: str, entry_type: str):
     add_entry(content, entry_type)
 
 
+def create_monthly_entry(content: str, entry_type: str):
+    add_entry(content, entry_type, "monthly")
+
+
+def create_future_entry(content: str, entry_type: str):
+    add_entry(content, entry_type, "future")
+
+
 def fetch_entries():
     return get_entries()
 

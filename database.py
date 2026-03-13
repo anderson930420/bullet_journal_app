@@ -51,13 +51,13 @@ def init_db():
     conn.commit()
     conn.close()
 
-def add_entry(content, entry_type):
+def add_entry(content, entry_type, bucket="today"):
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
-        "INSERT INTO entries (content, type, bucket) VALUES (?, ?, 'today')",
-        (content, entry_type)
+        "INSERT INTO entries (content, type, bucket) VALUES (?, ?, ?)",
+        (content, entry_type, bucket)
     )
 
     conn.commit()
