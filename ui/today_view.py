@@ -1,4 +1,9 @@
-from database import add_entry, delete_entry, get_entries, update_entry_completed
+from services.capture_service import (
+    create_entry,
+    fetch_entries,
+    remove_entry,
+    toggle_entry,
+)
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox,
@@ -59,7 +64,7 @@ class TodayView(QWidget):
         if not content:
             return
 
-        add_entry(content, entry_type)
+        create_entry(content, entry_type)
 
         self.entry_input.clear()
         self._refresh_entries()
@@ -76,13 +81,13 @@ class TodayView(QWidget):
             return
 
         entry_id = data["id"]
-        delete_entry(entry_id)
+        remove_entry(entry_id)
         self._refresh_entries()
     
     def _refresh_entries(self) -> None:
         self.entry_list.clear()
 
-        rows = get_entries()
+        rows = fetch_entries()
 
         for entry_id, content, entry_type, completed in rows:
             symbol = self._get_symbol(entry_type)
@@ -115,7 +120,7 @@ class TodayView(QWidget):
 
         new_completed = not completed
 
-        update_entry_completed(entry_id, int(new_completed))
+        toggle_entry(entry_id, completed)
         self._refresh_entries()
 
     def _get_symbol(self, entry_type: str) -> str:
