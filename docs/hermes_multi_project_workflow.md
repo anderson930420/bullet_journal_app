@@ -321,6 +321,108 @@ Human review remains mandatory for quality, correctness, and safety.
 | 1 | One or more checks failed (see error messages) |
 | 2 | Internal error (missing config, bad arguments, etc.) |
 
+## PR Handoff Helper
+
+`scripts/kanban_pr_handoff.py` is a generic PR handoff helper that safely prepares a
+completed worktree for human review. It validates the workspace, stages and commits
+changes, pushes the task branch, and optionally creates a GitHub PR.
+
+### What it does
+
+1. Validates running from the expected worktree (not main repo)
+2. Validates current branch matches expected branch
+3. Validates main repo is clean
+4. Displays `git status --short --untracked-files=all` and `git diff --stat`
+5. Fails if no repo changes to commit
+6. Stages all changes (including untracked)
+7. Shows staged status before commit
+8. Requires `--confirm` for real actions (fails without it)
+9. Commits with `--commit-message`
+10. Pushes branch with `git push -u origin <branch>`
+11. Creates PR with `gh pr create` (if gh CLI is available and `--skip-pr` not given)
+12. Writes `<artifact-dir>/pr_info.json` after successful PR creation
+13. Updates `artifact_manifest.json` `pr_url` and `status` fields if it exists
+
+### Safety properties
+
+- **Never merges** — only creates and pushes the PR; merge is the human reviewer's action
+- **Never marks a task done** — worker autonomy ends at the PR
+- **Never self-approves** — human review is the final approval surface
+- **Fails from main repo** — must be run from a worktree
+- **Dry-run mode** — no persistent changes; safe to preview
+
+### When to use it
+
+Use the PR handoff helper after a task is complete and the worker has written all
+required artifacts. It is the bridge between "worker done" and "human review".
+
+### Dry-run example
+
+```bash
+cd /home/ubuntu/bullet_journal_app/.worktrees/BJ-0010R
+
+python3 scripts/kanban_pr_handoff.py \
+  --project bullet-journal \
+  --task-key BJ-0010R \
+  --commit-message "tooling: add generic kanban PR handoff helper" \
+  --title "tooling: add generic kanban PR handoff helper" \
+  --body-file /home/ubuntu/.hermes/task-artifacts/BJ-0010R/completion_report.md \
+  --dry-run
+```
+
+### Real-run example
+
+```bash
+cd /home/ubuntu/bullet_journal_app/.worktrees/BJ-0010R
+
+python3 scripts/kanban_pr_handoff.py \
+  --project bullet-journal \
+  --task-key BJ-0010R \
+  --commit-message "tooling: add generic kanban PR handoff helper" \
+  --title "tooling: add generic kanban PR handoff helper" \
+  --body-file /home/ubuntu/.hermes/task-artifacts/BJ-0010R/completion_report.md \
+  --confirm
+```
+
+### Why it does not merge
+
+Merge is the human reviewer's action. The helper:
+- Creates the PR for human review
+- Pushes the branch so the PR is accessible
+- Writes `pr_info.json` with the PR URL
+- Updates `artifact_manifest.json` with `pr_url` and `status: waiting_for_human_review`
+
+The human reviewer then approves and merges via GitHub. This preserves human agency
+as the final gate.
+
+### How it writes `pr_info.json`
+
+After successful PR creation, the helper writes:
+
+```json
+{
+  "project": "bullet-journal",
+  "task_key": "BJ-0010R",
+  "branch": "worktree/BJ-0010R",
+  "base": "main",
+  "remote": "origin",
+  "commit": "<commit-sha>",
+  "pr_url": "https://github.com/...",
+  "created_by": "kanban_pr_handoff.py"
+}
+```
+
+If `artifact_manifest.json` exists, it also updates:
+- `pr_url` — the GitHub PR URL
+- `status` — set to `waiting_for_human_review` (if not already in a terminal state)
+
+### How it relates to `artifact_manifest.json`
+
+`artifact_manifest.json` is the canonical record of task state. The PR handoff helper
+updates it as a courtesy when a PR is created, so downstream tools (dashboards, review
+tools) can find the PR URL without parsing git history. The manifest's `status` field
+transitions from `running` to `waiting_for_human_review` at this point.
+
 ## Artifact Contract
 
 Workers produce artifacts following the **Hermes Artifact Contract** defined in
@@ -339,10 +441,11 @@ The `scripts/kanban_artifact_manifest.py` helper manages `artifact_manifest.json
 |---|---|
 | `config/projects.yaml` | Project registry |
 | `scripts/kanban_create_safe.py` | Generic safe submitter |
-| `scripts/bj_task_template.py` | Template-based body generator |
 | `scripts/kanban_new_task_safe.py` | One-command submit wrapper |
 | `scripts/kanban_worker_guard.py` | Worker preflight guard |
 | `scripts/kanban_artifact_manifest.py` | Artifact manifest init/validate helper |
+| `scripts/kanban_pr_handoff.py` | PR handoff helper (staging, commit, push, PR creation) |
+| `scripts/bj_task_template.py` | Template-based body generator |
 | `scripts/bj_kanban_create.py` | Bullet Journal-specific submitter (unchanged) |
 | `docs/hermes_artifact_contract.md` | Artifact contract schema and folder layout |
 | `docs/hermes_multi_project_workflow.md` | This document |
