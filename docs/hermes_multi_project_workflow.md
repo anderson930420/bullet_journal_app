@@ -321,6 +321,18 @@ Human review remains mandatory for quality, correctness, and safety.
 | 1 | One or more checks failed (see error messages) |
 | 2 | Internal error (missing config, bad arguments, etc.) |
 
+## Artifact Contract
+
+Workers produce artifacts following the **Hermes Artifact Contract** defined in
+`docs/hermes_artifact_contract.md`. The contract standardizes the artifact folder
+layout and `artifact_manifest.json` schema so downstream tools (dashboards, PR handoff
+helpers, accept/cleanup helpers) can read task outputs consistently.
+
+The `scripts/kanban_artifact_manifest.py` helper manages `artifact_manifest.json`:
+
+- `init` — create a manifest from CLI args or project registry
+- `validate` — verify a manifest is structurally valid
+
 ## Files
 
 | File | Purpose |
@@ -330,5 +342,7 @@ Human review remains mandatory for quality, correctness, and safety.
 | `scripts/bj_task_template.py` | Template-based body generator |
 | `scripts/kanban_new_task_safe.py` | One-command submit wrapper |
 | `scripts/kanban_worker_guard.py` | Worker preflight guard |
+| `scripts/kanban_artifact_manifest.py` | Artifact manifest init/validate helper |
 | `scripts/bj_kanban_create.py` | Bullet Journal-specific submitter (unchanged) |
+| `docs/hermes_artifact_contract.md` | Artifact contract schema and folder layout |
 | `docs/hermes_multi_project_workflow.md` | This document |

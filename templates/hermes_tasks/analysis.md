@@ -31,9 +31,13 @@ Analysis / read-only.
 
 ## Required artifacts
 
-- analysis_report.md with findings
-- git_status.txt
-- worktree_info.txt
+Follow the Hermes Artifact Contract (`docs/hermes_artifact_contract.md`) for the
+standard folder layout. Required files:
+
+- `artifact_manifest.json` — machine-readable completion manifest
+- `completion_report.md` — human-readable summary (including findings)
+- `git_status.txt` — `git status --short --untracked-files=all`
+- `worktree_info.txt` — `git worktree list` + branch info
 ```
 
 ## Governance notes

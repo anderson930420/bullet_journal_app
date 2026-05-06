@@ -31,6 +31,16 @@ Documentation.
 - README.md (short pointers only)
 ```
 
+## Required artifacts
+
+Follow the Hermes Artifact Contract (`docs/hermes_artifact_contract.md`) for the
+standard folder layout. Required files:
+
+- `artifact_manifest.json` — machine-readable completion manifest
+- `completion_report.md` — human-readable summary
+- `git_status.txt` — `git status --short --untracked-files=all`
+- `worktree_info.txt` — `git worktree list` + branch info
+
 ## Governance notes
 
 - Final state: `blocked / waiting_for_human_review`
