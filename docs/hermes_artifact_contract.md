@@ -202,6 +202,53 @@ A task that modifies source code should:
 - After PR merge: set `pr_url` and `merged_commit`
 - Set `status: merged` once the PR is merged
 
+## pr_info.json
+
+`pr_info.json` is written by `scripts/kanban_pr_handoff.py` after a successful PR creation.
+It records the PR metadata for downstream tools.
+
+**Schema:**
+
+```json
+{
+  "project": "bullet-journal",
+  "task_key": "BJ-0012R",
+  "branch": "worktree/BJ-0012R",
+  "base": "main",
+  "remote": "origin",
+  "commit": "abc123def456...",
+  "pr_url": "https://github.com/owner/repo/pull/42",
+  "created_by": "kanban_pr_handoff.py"
+}
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `project` | string | Project name from `config/projects.yaml` |
+| `task_key` | string | Hermes task key (e.g. `BJ-0012R`) |
+| `branch` | string | Branch name pushed (e.g. `worktree/BJ-0012R`) |
+| `base` | string | Base branch for the PR (e.g. `main`) |
+| `remote` | string | Git remote name (e.g. `origin`) |
+| `commit` | string | Commit SHA of the pushed commit |
+| `pr_url` | string | GitHub PR URL. Only present after successful PR creation. Not written if `--skip-pr` was used |
+| `created_by` | string | Always `kanban_pr_handoff.py` |
+
+**When it is written:**
+- Written only after successful PR creation (real-run, with `--confirm`)
+- Not written in dry-run mode
+- Not written if `--skip-pr` was used
+
+**How `kanban_pr_handoff.py` uses it:**
+
+1. After `git push -u origin <branch>` succeeds, the helper commits the staged changes
+2. After `gh pr create` succeeds, it writes `<artifact-dir>/pr_info.json`
+3. If `artifact_manifest.json` exists in the same directory, it updates `pr_url` and `status` to `waiting_for_human_review`
+4. The helper then exits — it does **not** merge the PR
+
+**`merged_commit` is NOT set by the handoff helper.** That field belongs to the human reviewer who merges via GitHub.
+
 ## How Dashboard / PR Handoff / Accept Helpers Will Use It
 
 Downstream tools read `artifact_manifest.json` to:
@@ -221,6 +268,7 @@ config/projects.yaml          → project registry
 kanban_create_safe.py         → safe task creation + worktree setup
 kanban_worker_guard.py        → preflight workspace verification
 kanban_artifact_manifest.py   → postflight artifact contract
+kanban_pr_handoff.py          → PR handoff (commit, push, PR creation)
 docs/hermes_artifact_contract.md → this document
 ```
 
