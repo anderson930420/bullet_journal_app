@@ -1,0 +1,38 @@
+# Documentation Task Template
+
+## Purpose
+
+Documentation tasks improve or add to project documentation without changing application behavior.
+
+## Task type
+
+Documentation.
+
+## Key characteristics
+
+- **Docs-only changes** — this task should not change application behavior
+- **No app behavior changes** — only markdown, README, and doc files
+- **Run formatting/checks** where applicable (e.g., markdown linting)
+
+## Sections
+
+```markdown
+## Goal
+
+<What documentation needs to be written or updated.>
+
+## Background
+
+<Context and motivation.>
+
+## Allowed changes
+
+- docs/*.md
+- README.md (short pointers only)
+```
+
+## Governance notes
+
+- Final state: `blocked / waiting_for_human_review`
+- Do not push, merge, or self-approve
+- Write all artifacts to `~/.hermes/task-artifacts/<task-key>/`
