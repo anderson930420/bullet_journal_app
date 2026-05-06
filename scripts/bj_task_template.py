@@ -678,6 +678,12 @@ def main() -> None:
         "--dry-run", action="store_true",
         help="Print generated body to stdout without writing a file",
     )
+    parser.add_argument(
+        "--no-governance-header", action="store_true",
+        help="Omit the governance header from the generated body. "
+             "Useful when the caller (e.g. kanban_new_task_safe.py) "
+             "or a submitter will add its own governance header.",
+    )
 
     args = parser.parse_args()
 
@@ -718,11 +724,16 @@ def main() -> None:
     # Generate the skeleton (without header — header is governance-level)
     skeleton = builder(args.task_key, args.title.strip(), args.goal.strip())
 
-    # Add governance header (same one used by bj_kanban_create.py)
-    body = GOVERNANCE_HEADER.format(
-        worktree_path=worktree_path,
-        repo_root=REPO_ROOT,
-    ) + "\n" + skeleton
+    # Add governance header only when not suppressed.
+    # When suppressed, the caller or submitter is responsible for adding
+    # a governance section appropriate to its own workflow.
+    if args.no_governance_header:
+        body = skeleton
+    else:
+        body = GOVERNANCE_HEADER.format(
+            worktree_path=worktree_path,
+            repo_root=REPO_ROOT,
+        ) + "\n" + skeleton
 
     # ------------------------------------------------------------------
     # Output

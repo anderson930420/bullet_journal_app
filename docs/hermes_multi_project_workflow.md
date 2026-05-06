@@ -159,11 +159,107 @@ All tasks created by the generic submitter include mandatory governance text:
 - Write artifacts to the artifact folder
 - Record `git status --short --untracked-files=all` in artifacts
 
+## One-Command Task Submit Flow
+
+For the common case of creating a new task with a generated body, the wrapper
+`scripts/kanban_new_task_safe.py` combines both steps into a single command:
+
+```bash
+python3 scripts/kanban_new_task_safe.py \
+  --project bullet-journal \
+  --task-key BJ-0017B \
+  --type implementation \
+  --title "Add generic one-command task submit flow" \
+  --goal "Generate a task body and submit it through the generic safe submitter." \
+  --priority 1 \
+  --max-runtime 2h \
+  --dry-run
+```
+
+### When to use `kanban_new_task_safe.py`
+
+Use the wrapper when you want:
+- A single command to generate the task body AND submit it
+- The template-based body generation (analysis, implementation, docs, bugfix, review)
+- Preserved `default_assignee` fallback from the project registry
+- A preview of what would be created before committing
+
+Use `kanban_new_task_safe.py --dry-run` to verify the generated body and
+planned worktree/artifact paths before creating anything.
+
+### When to use `kanban_create_safe.py` directly
+
+Use the generic submitter directly when:
+- You already have a pre-written task body file (e.g. authored manually or by another tool)
+- You want full control over every argument passed to `hermes kanban create`
+- You need `--reuse-existing-worktree` or `--allow-non-main` flags not exposed by the wrapper
+
+### How the wrapper relates to the submitter
+
+The wrapper (`kanban_new_task_safe.py`) performs two steps:
+
+1. **Generate body** — calls `scripts/bj_task_template.py` to produce a markdown task body
+2. **Submit** — calls `scripts/kanban_create_safe.py` with the generated body file
+
+In `--dry-run` mode, both steps run in preview mode; no worktree, artifact folder,
+or Hermes task is created, and temporary body files are cleaned up before exit.
+
+In real-run mode, the wrapper writes the body to `--body-output` (default: `/tmp/<task-key>.md`)
+or to a path you specify, then calls `kanban_create_safe.py` which creates the worktree,
+artifact folder, and Hermes task.
+
+The wrapper stops at human review because the generated task body inherits governance
+rules from the template system.
+
+### Example
+
+**Dry run:**
+
+```bash
+python3 scripts/kanban_new_task_safe.py \
+  --project bullet-journal \
+  --task-key BJ-0017B \
+  --type implementation \
+  --title "Add generic one-command task submit flow" \
+  --goal "Generate a task body and submit it through the generic safe submitter." \
+  --priority 1 \
+  --max-runtime 2h \
+  --dry-run
+```
+
+**Real run:**
+
+```bash
+python3 scripts/kanban_new_task_safe.py \
+  --project bullet-journal \
+  --task-key BJ-0017B \
+  --type implementation \
+  --title "Add generic one-command task submit flow" \
+  --goal "Generate a task body and submit it through the generic safe submitter." \
+  --priority 1 \
+  --max-runtime 2h
+```
+
+### Optional arguments
+
+| Argument | Description |
+|---|---|
+| `--assignee` | Assignee profile (falls back to project's `default_assignee`) |
+| `--priority` | Task priority (integer) |
+| `--max-runtime` | Max runtime (e.g. `2h`, `30m`) |
+| `--config` | Path to `projects.yaml` (default: `config/projects.yaml`) |
+| `--body-output` | Write generated body to this path (default: `/tmp/<task-key>.md`) |
+| `--overwrite` | Allow overwriting an existing body file |
+| `--dry-run` | Preview only; no persistent side effects |
+| `--json` | Pass `--json` to `hermes kanban create` |
+
 ## Files
 
 | File | Purpose |
 |---|---|
 | `config/projects.yaml` | Project registry |
 | `scripts/kanban_create_safe.py` | Generic safe submitter |
+| `scripts/bj_task_template.py` | Template-based body generator |
+| `scripts/kanban_new_task_safe.py` | One-command submit wrapper |
 | `scripts/bj_kanban_create.py` | Bullet Journal-specific submitter (unchanged) |
 | `docs/hermes_multi_project_workflow.md` | This document |
