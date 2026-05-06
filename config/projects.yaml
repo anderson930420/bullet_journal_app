@@ -1,0 +1,21 @@
+# Project Registry — Hermes Kanban Multi-Project Workflow
+#
+# This registry defines the canonical repo, branch, and artifact paths
+# for each project managed by the Hermes Kanban system.
+#
+# Design principle: one generic tool layer + project registry config,
+# NOT copies of bj_* scripts in every repo.
+#
+# To add a new project (e.g. alphaforge):
+#   1. Add an entry below with repo, default_branch, task_prefix, etc.
+#   2. Ensure the repo is a valid git repository
+#   3. No script changes required — kanban_create_safe.py reads this file.
+
+projects:
+  bullet-journal:
+    repo: /home/ubuntu/bullet_journal_app
+    default_branch: main
+    task_prefix: BJ
+    artifact_root: /home/ubuntu/.hermes/task-artifacts
+    default_assignee: bullet-eng
+    branch_prefix: worktree/
