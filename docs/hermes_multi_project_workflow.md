@@ -253,6 +253,74 @@ python3 scripts/kanban_new_task_safe.py \
 | `--dry-run` | Preview only; no persistent side effects |
 | `--json` | Pass `--json` to `hermes kanban create` |
 
+## Worker Preflight Guard
+
+`scripts/kanban_worker_guard.py` is a generic preflight guard that workers run at the
+start of every task to verify they are operating inside the expected verified worktree,
+on the expected branch, and not modifying the main repo directly.
+
+### What it checks
+
+1. Loads `config/projects.yaml` and validates the project exists
+2. Resolves the project repo path and verifies it is a git repository
+3. Resolves expected worktree (`<repo>/.worktrees/<task-key>`) and expected branch (`<branch_prefix><task-key>`)
+4. Determines the actual git root and current branch via `git rev-parse` and `git branch --show-current`
+5. **Fails** if the actual git root does not exactly equal the expected worktree path
+6. **Fails** if the actual branch does not exactly equal the expected branch
+7. **Fails** if the worker is running in the main repo root instead of a worktree
+8. **Fails** if the main repo has uncommitted or untracked changes
+9. Optionally writes a `guard_report.txt` artifact
+
+### When to run it
+
+Run the guard **before making any changes** at the start of every task:
+
+```bash
+cd /home/ubuntu/bullet_journal_app/.worktrees/<task-key>
+
+python3 scripts/kanban_worker_guard.py \
+  --project bullet-journal \
+  --task-key BJ-0016R
+```
+
+### Example command
+
+```bash
+cd /home/ubuntu/bullet_journal_app/.worktrees/BJ-0016R
+
+python3 scripts/kanban_worker_guard.py \
+  --project bullet-journal \
+  --task-key BJ-0016R \
+  --write-artifacts
+```
+
+### What failures mean
+
+| Error | Meaning |
+|---|---|
+| `Wrong worktree` | Worker is running in the wrong directory — check `pwd` |
+| `Wrong branch` | Worker checked out the wrong branch — use `git worktree list` |
+| `Worker is running in main repo` | Worker must use the worktree, not the main repo |
+| `Main repo has uncommitted/untracked changes` | Clean the main repo before proceeding |
+
+### Why it complements but does not replace human review
+
+The guard enforces mechanical preconditions — correct directory, branch, and clean main repo.
+It cannot detect:
+- Whether the worker is making the right changes
+- Whether the implementation is correct or safe
+- Whether the task body was followed correctly
+
+Human review remains mandatory for quality, correctness, and safety.
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| 0 | All preflight checks passed |
+| 1 | One or more checks failed (see error messages) |
+| 2 | Internal error (missing config, bad arguments, etc.) |
+
 ## Files
 
 | File | Purpose |
@@ -261,5 +329,6 @@ python3 scripts/kanban_new_task_safe.py \
 | `scripts/kanban_create_safe.py` | Generic safe submitter |
 | `scripts/bj_task_template.py` | Template-based body generator |
 | `scripts/kanban_new_task_safe.py` | One-command submit wrapper |
+| `scripts/kanban_worker_guard.py` | Worker preflight guard |
 | `scripts/bj_kanban_create.py` | Bullet Journal-specific submitter (unchanged) |
 | `docs/hermes_multi_project_workflow.md` | This document |

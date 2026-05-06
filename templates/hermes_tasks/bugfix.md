@@ -43,3 +43,18 @@ Bug fix.
 - Final state: `blocked / waiting_for_human_review`
 - Do not push, merge, or self-approve
 - Write all artifacts to `~/.hermes/task-artifacts/<task-key>/`
+
+## Worker preflight guard
+
+Before making any changes, run the guard to verify your workspace:
+
+```bash
+cd /home/ubuntu/bullet_journal_app/.worktrees/<task-key>
+
+python3 scripts/kanban_worker_guard.py \
+  --project bullet-journal \
+  --task-key <task-key>
+```
+
+The guard fails fast if you are in the wrong directory, on the wrong branch,
+or the main repo has uncommitted changes. It does not replace human review.
