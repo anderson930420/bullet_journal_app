@@ -423,6 +423,152 @@ updates it as a courtesy when a PR is created, so downstream tools (dashboards, 
 tools) can find the PR URL without parsing git history. The manifest's `status` field
 transitions from `running` to `waiting_for_human_review` at this point.
 
+## Accept / Cleanup Helper
+
+`scripts/kanban_accept_cleanup.py` is a generic post-merge accept / cleanup helper that
+standardizes the cleanup flow after a human reviewer has already accepted and merged a PR.
+
+### What it does
+
+1. Validates running from a verified worktree (via main repo check)
+2. Validates main repo is clean
+3. **Dry-run**: prints planned actions without making any changes
+4. **Real mode** (requires `--confirm`): fetches, checks out base branch, pulls --ff-only
+5. Verifies merged commit is in base branch history (if provided)
+6. Verifies PR is merged via gh CLI (if PR URL/number provided)
+7. Writes `<artifact-dir>/decision.md` with the human decision
+8. Updates `artifact_manifest.json` `status` field (done/rejected)
+9. Removes task worktree without force by default (accepted only)
+10. Deletes local task branch if it exists
+11. Deletes remote task branch only with `--delete-remote-branch`
+12. Adds Hermes Kanban comment if `--task-id` provided
+13. Completes Hermes Kanban task if `--task-id` provided and decision=accepted
+
+### What it does NOT do
+
+- Never merges a PR
+- Never approves work by itself
+- Never runs `git merge`
+- Never runs `gh pr merge`
+- Never pushes directly to main
+- Never completes a Hermes task unless `--task-id` is provided and decision=accepted
+
+### Safety properties (5 blocker fixes)
+
+**Blocker fix #1 — Dry-run is side-effect free:**
+In `--dry-run` mode, the helper performs NO mutating operations: no git fetch/checkout/pull,
+no file writes, no worktree removal, no branch deletion, no Hermes comment/complete.
+It only prints the planned actions.
+
+**Blocker fix #2 — Missing --confirm fails before any mutating action:**
+If neither `--dry-run` nor `--confirm` is provided, the helper exits with error code 1
+before performing any git operations, file writes, or Hermes calls.
+
+**Blocker fix #3 — No force-removal by default:**
+Worktree removal uses `git worktree remove` (non-force) by default. If the worktree is dirty,
+removal fails with a clear error message. Optional `--force-remove-worktree` enables
+`git worktree remove --force`, but only in `--confirm` mode.
+
+**Blocker fix #4 — Robust local branch detection:**
+Uses `git show-ref --verify --quiet refs/heads/<branch>` instead of raw `git branch` output,
+avoiding issues with leading spaces or the `*` marker.
+
+**Blocker fix #5 — PR required: yes:**
+The completion report explicitly states `PR required: yes` since the helper modifies
+repo files and adds a script.
+
+### When to use it
+
+Use the accept/cleanup helper after a human reviewer has:
+1. Reviewed the PR on GitHub
+2. Approved and merged it to main
+3. Recorded the merge commit SHA
+
+### Dry-run example
+
+```bash
+MAIN_HEAD=$(cd /home/ubuntu/bullet_journal_app && git rev-parse --short HEAD)
+
+python3 scripts/kanban_accept_cleanup.py \
+  --project bullet-journal \
+  --task-key BJ-0011R \
+  --task-id t_example \
+  --decision accepted \
+  --merged-commit "$MAIN_HEAD" \
+  --dry-run
+```
+
+### Real-run example
+
+```bash
+MAIN_HEAD=$(cd /home/ubuntu/bullet_journal_app && git rev-parse --short HEAD)
+
+python3 scripts/kanban_accept_cleanup.py \
+  --project bullet-journal \
+  --task-key BJ-0011R \
+  --task-id t_example \
+  --decision accepted \
+  --merged-commit "$MAIN_HEAD" \
+  --confirm
+```
+
+### How it updates decision.md
+
+In confirmed real mode, writes `<artifact-dir>/decision.md`:
+
+```markdown
+# Task Decision
+
+- project: bullet-journal
+- task_key: BJ-0011R
+- task_id: t_example
+- decision: accepted
+- merged_commit: 977abb7
+- decided_by: human
+- recorded_by: kanban_accept_cleanup.py
+- recorded_at: 2026-05-08T03:45:00+00:00
+
+## Notes
+
+Human review accepted. PR has been merged to main.
+```
+
+Dry-run does NOT write decision.md.
+
+### How it updates artifact_manifest.json
+
+If `artifact_manifest.json` exists in the artifact directory, it updates the `status` field:
+
+| Decision  | Status    |
+|-----------|-----------|
+| accepted  | done      |
+| rejected  | rejected  |
+| abandoned | rejected  |
+
+Existing fields (`checks`, `artifacts`, `changed_files`, `recommendation`) are preserved.
+
+### How it handles worktree cleanup
+
+For `decision=accepted`:
+1. Checks if the task worktree exists
+2. Verifies it is clean (non-force removal would fail if dirty)
+3. Removes it using `git worktree remove` (non-force by default)
+4. If dirty and `--force-remove-worktree --confirm`: uses `git worktree remove --force`
+5. Deletes the local task branch
+6. Optionally deletes the remote task branch with `--delete-remote-branch`
+
+### Why it does not merge PRs
+
+Merge is the human reviewer's action on GitHub. The helper runs after that merge,
+receiving the merge commit SHA as input. It never runs `git merge` or `gh pr merge`.
+This preserves human agency as the final gate.
+
+### How it relates to human review
+
+The helper is the bridge between "human merged PR on GitHub" and "task artifacts
+updated, worktree cleaned up, Hermes task completed". It requires explicit human
+confirmation (`--confirm`) and never self-completes without confirmation.
+
 ## Artifact Contract
 
 Workers produce artifacts following the **Hermes Artifact Contract** defined in
@@ -445,6 +591,7 @@ The `scripts/kanban_artifact_manifest.py` helper manages `artifact_manifest.json
 | `scripts/kanban_worker_guard.py` | Worker preflight guard |
 | `scripts/kanban_artifact_manifest.py` | Artifact manifest init/validate helper |
 | `scripts/kanban_pr_handoff.py` | PR handoff helper (staging, commit, push, PR creation) |
+| `scripts/kanban_accept_cleanup.py` | Post-merge accept/cleanup helper (decision.md, manifest, worktree, Hermes) |
 | `scripts/bj_task_template.py` | Template-based body generator |
 | `scripts/bj_kanban_create.py` | Bullet Journal-specific submitter (unchanged) |
 | `docs/hermes_artifact_contract.md` | Artifact contract schema and folder layout |
