@@ -45,7 +45,62 @@ The Hermes Artifact Contract defines a machine-readable schema and standard fold
 | File | Condition |
 |------|-----------|
 | `guard_report.txt` | Required when the worker guard runs with `--write-artifacts` |
-| `decision.md` | Required after human review / acceptance |
+| `decision.md` | Required after human review / acceptance — written by `kanban_accept_cleanup.py` |
+
+### decision.md
+
+`decision.md` is written by `scripts/kanban_accept_cleanup.py` after a human reviewer has
+accepted and merged a PR. It records the decision and merge metadata for downstream tools.
+
+**Schema:**
+
+```markdown
+# Task Decision
+
+- project: <project-name>
+- task_key: <task-key>
+- task_id: <hermes-task-id>   # if provided
+- decision: accepted/rejected/abandoned
+- pr_url: <url>               # if provided
+- pr_number: <number>         # if provided
+- merged_commit: <sha>        # if provided
+- decided_by: human
+- recorded_by: kanban_accept_cleanup.py
+- recorded_at: <iso-timestamp>
+
+## Notes
+
+<notes or default message based on decision>
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `project` | string | Project name from `config/projects.yaml` |
+| `task_key` | string | Hermes task key (e.g. `BJ-0011R`) |
+| `task_id` | string | Hermes task ID — only present if `--task-id` was provided |
+| `decision` | string | One of `accepted`, `rejected`, `abandoned` |
+| `pr_url` | string | GitHub PR URL — only present if provided |
+| `pr_number` | integer | GitHub PR number — only present if provided |
+| `merged_commit` | string | Merge commit SHA — only present if provided |
+| `decided_by` | string | Always `human` |
+| `recorded_by` | string | Always `kanban_accept_cleanup.py` |
+| `recorded_at` | string | ISO 8601 timestamp |
+| `notes` | string | Human notes or default message |
+
+**When it is written:**
+- Written only in confirmed real mode with `--confirm`
+- NOT written in dry-run mode
+- NOT written without `--confirm`
+
+**How `kanban_accept_cleanup.py` uses it:**
+1. After human merges PR on GitHub, reviewer provides merge commit SHA
+2. Helper verifies commit is in base branch history
+3. Helper writes `decision.md` with the decision
+4. Helper updates `artifact_manifest.json` `status` field
+5. Helper removes worktree and cleans up branches
+6. Helper optionally completes Hermes task
 
 ### Optional
 
@@ -90,10 +145,10 @@ The Hermes Artifact Contract defines a machine-readable schema and standard fold
 | `ready` | Task is ready to be picked up |
 | `running` | Task is in progress |
 | `waiting_for_human_review` | Worker completed; awaiting human review |
-| `accepted` | Human accepted the work |
+| `accepted` | Human accepted the work (post-merge) |
 | `rejected` | Human rejected the work |
 | `merged` | Changes merged to main branch |
-| `done` | Task fully completed |
+| `done` | Task fully completed (set by accept/cleanup helper for accepted decisions) |
 | `unknown` | Status could not be determined |
 
 ### Allowed `recommendation` Values
