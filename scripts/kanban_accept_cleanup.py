@@ -202,7 +202,16 @@ def write_decision_md(artifact_dir: str, data: dict) -> str:
             f.write(f"{notes}\n")
         else:
             if data["decision"] == "accepted":
-                f.write("Human review accepted. PR has been merged to main.\n")
+                # Case A: accepted with PR/merged commit → "PR has been merged"
+                # Case B: accepted with --allow-missing-merged-commit and no PR/commit → "No PR was required"
+                pr_url = data.get("pr_url")
+                pr_number = data.get("pr_number")
+                merged_commit = data.get("merged_commit")
+                has_pr_info = bool(pr_url or pr_number or merged_commit)
+                if has_pr_info:
+                    f.write("Human review accepted. PR has been merged to main.\n")
+                else:
+                    f.write("Human review accepted. No PR was required because this task produced no repo changes.\n")
             elif data["decision"] == "rejected":
                 f.write("Human review rejected.\n")
             elif data["decision"] == "abandoned":
@@ -633,11 +642,18 @@ def main() -> int:
             })
         if args.task_id and not args.skip_hermes_comment:
             if args.decision == "accepted":
-                comment_msg = (
-                    f"Human review accepted. "
-                    f"PR merged to main at {args.merged_commit or 'unknown commit'}. "
-                    f"Task cleanup completed by kanban_accept_cleanup.py."
-                )
+                if args.merged_commit or args.pr_url or args.pr_number:
+                    comment_msg = (
+                        f"Human review accepted. "
+                        f"PR merged to main at {args.merged_commit}. "
+                        f"Task cleanup completed by kanban_accept_cleanup.py."
+                    )
+                else:
+                    comment_msg = (
+                        f"Human review accepted. "
+                        f"No PR was required; task produced no repo changes. "
+                        f"Task cleanup completed by kanban_accept_cleanup.py."
+                    )
             elif args.decision == "rejected":
                 comment_msg = (
                     f"Human review rejected. "
@@ -819,11 +835,18 @@ def main() -> int:
     # Action: Hermes comment
     if args.task_id and not args.skip_hermes_comment:
         if args.decision == "accepted":
-            comment_msg = (
-                f"Human review accepted. "
-                f"PR merged to main at {args.merged_commit or 'unknown commit'}. "
-                f"Task cleanup completed by kanban_accept_cleanup.py."
-            )
+            if args.merged_commit or args.pr_url or args.pr_number:
+                comment_msg = (
+                    f"Human review accepted. "
+                    f"PR merged to main at {args.merged_commit}. "
+                    f"Task cleanup completed by kanban_accept_cleanup.py."
+                )
+            else:
+                comment_msg = (
+                    f"Human review accepted. "
+                    f"No PR was required; task produced no repo changes. "
+                    f"Task cleanup completed by kanban_accept_cleanup.py."
+                )
         elif args.decision == "rejected":
             comment_msg = (
                 f"Human review rejected. "
