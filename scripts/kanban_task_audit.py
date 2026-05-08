@@ -594,6 +594,197 @@ def check_merged_commit(merged_commit: Optional[str], base: str, repo: str) -> l
 
 
 # ---------------------------------------------------------------------------
+# BJ-0024-style lifecycle checks
+# (no-PR manifest with dirty worktree, self-completion instead of blocked)
+# ---------------------------------------------------------------------------
+
+def check_lifecycle_compliance(
+    artifact_dir: str,
+    task_id: Optional[str],
+    phase: str,
+    worktree_path: Optional[str] = None,
+) -> list[dict]:
+    """Detect BJ-0024-style lifecycle violations.
+
+    Checks:
+    - actual Hermes task status 'done' when phase=review expects 'waiting_for_human_review'
+    - no-PR manifest (requires_pr=false) with dirty worktree
+    - no-PR manifest with non-empty changed_files
+    - missing git_status.txt when worktree is dirty
+
+    For dirty worktree detection, this function prefers real worktree git checks
+    (when worktree_path is provided and exists) over git_status.txt fallback.
+    """
+    checks = []
+
+    if not artifact_dir:
+        checks.append({
+            "name": "lifecycle_check_skipped",
+            "status": "WARN",
+            "message": "No artifact_dir provided — skipping lifecycle compliance checks",
+        })
+        return checks
+
+    manifest_path = os.path.join(artifact_dir, "artifact_manifest.json")
+    git_status_path = os.path.join(artifact_dir, "git_status.txt")
+
+    # Load manifest if available
+    manifest_requires_pr: Optional[bool] = None
+    manifest_changed_files: list = []
+    manifest_status: Optional[str] = None
+    manifest_worktree: Optional[str] = None
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, "r") as f:
+                m = json.load(f)
+            manifest_requires_pr = m.get("requires_pr")
+            manifest_changed_files = m.get("changed_files") or []
+            manifest_status = m.get("status")
+            manifest_worktree = m.get("worktree")
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Load git_status.txt if available
+    git_status_content = ""
+    if os.path.isfile(git_status_path):
+        try:
+            git_status_content = open(git_status_path).read()
+        except OSError:
+            pass
+
+    # ------------------------------------------------------------------
+    # Check 1: actual Hermes task status 'done' when phase=review expects
+    # 'waiting_for_human_review' — must use real hermes kanban show, not
+    # just the manifest status field.
+    # ------------------------------------------------------------------
+    if phase == "review" and task_id:
+        rc, stdout, stderr = run(["hermes", "kanban", "show", task_id], timeout=15)
+        hermes_actual_status: Optional[str] = None
+        if rc == 0:
+            for line in stdout.splitlines():
+                line = line.strip()
+                if line.startswith("status:"):
+                    hermes_actual_status = line.split(":", 1)[1].strip()
+                    break
+
+        if hermes_actual_status == "done":
+            checks.append({
+                "name": "lifecycle_hermes_task_done_in_review_phase",
+                "status": "FAIL",
+                "message": (
+                    "BJ-0024 pattern: actual Hermes task status is 'done' but review-phase "
+                    "tasks must end in 'blocked / waiting_for_human_review'. "
+                    f"Worker self-completed (Hermes status={hermes_actual_status})."
+                ),
+            })
+        elif hermes_actual_status is None and rc != 0:
+            checks.append({
+                "name": "lifecycle_hermes_task_status_unknown",
+                "status": "WARN",
+                "message": f"Could not determine Hermes task status: {stderr.strip() or stdout.strip()}",
+            })
+
+    # ------------------------------------------------------------------
+    # Check 1b: fallback to manifest status if we have no task_id but
+    # manifest_status is 'done' — less reliable but still informative.
+    # Only fires when task_id was not provided (otherwise Check 1 covers it).
+    # ------------------------------------------------------------------
+    if phase == "review" and not task_id and manifest_status == "done":
+        checks.append({
+            "name": "lifecycle_done_in_review_phase_manifest",
+            "status": "FAIL",
+            "message": (
+                "BJ-0024 pattern: manifest status is 'done' but review-phase tasks "
+                "must end in 'blocked / waiting_for_human_review'. "
+                "(No task_id available — checked manifest only.)"
+            ),
+        })
+
+    # ------------------------------------------------------------------
+    # Check 2: no-PR manifest (requires_pr=false) with dirty worktree.
+    # Use real worktree git checks when available; fall back to
+    # git_status.txt content only when worktree no longer exists.
+    # ------------------------------------------------------------------
+    if manifest_requires_pr is False:
+        is_dirty = False
+        dirty_details = ""
+
+        # Prefer real worktree git checks
+        effective_worktree = worktree_path or manifest_worktree
+        if effective_worktree and os.path.isdir(effective_worktree):
+            rc1, status_out, _ = run(
+                ["git", "status", "--short", "--untracked-files=all"],
+                cwd=effective_worktree,
+            )
+            rc2, diff_out, _ = run(
+                ["git", "diff", "--stat"],
+                cwd=effective_worktree,
+            )
+            is_dirty = (rc1 == 0 and status_out.strip() != "") or (rc2 == 0 and diff_out.strip() != "")
+            dirty_details = (
+                f"git status output: {status_out.strip()!r}; "
+                f"git diff output: {diff_out.strip()!r}"
+            )
+        else:
+            # Fall back to git_status.txt content analysis
+            status_lines = [l.strip() for l in git_status_content.strip().splitlines() if l.strip()]
+            dirty_indicators = [l for l in status_lines if l and not l.startswith("#")]
+            is_dirty = len(dirty_indicators) > 0
+            dirty_details = f"git_status.txt dirty indicators: {dirty_indicators!r}"
+
+        if is_dirty:
+            checks.append({
+                "name": "lifecycle_nopr_with_dirty_worktree",
+                "status": "FAIL",
+                "message": (
+                    f"BJ-0024 pattern: requires_pr=false but worktree is dirty. "
+                    f"{dirty_details} "
+                    "Manifest must not claim requires_pr=false when repo has changes."
+                ),
+            })
+
+    # ------------------------------------------------------------------
+    # Check 3: no-PR manifest with non-empty changed_files
+    # ------------------------------------------------------------------
+    if manifest_requires_pr is False and manifest_changed_files:
+        checks.append({
+            "name": "lifecycle_nopr_with_changed_files",
+            "status": "FAIL",
+            "message": (
+                f"BJ-0024 pattern: requires_pr=false but changed_files is non-empty: "
+                f"{manifest_changed_files!r}. Manifest is inconsistent."
+            ),
+        })
+
+    # ------------------------------------------------------------------
+    # Check 4: missing or empty git_status.txt when worktree is dirty
+    # ------------------------------------------------------------------
+    git_status_missing = not os.path.isfile(git_status_path)
+    git_status_empty = not git_status_content.strip()
+    git_status_looks_template = (
+        git_status_missing or
+        (git_status_empty) or
+        "git status" in git_status_content.lower()
+    )
+    real_git_status_content = (
+        not git_status_missing and
+        not git_status_empty and
+        "git status" not in git_status_content.lower()
+    )
+    if git_status_looks_template and not real_git_status_content and manifest_status not in (None, "running"):
+        checks.append({
+            "name": "lifecycle_missing_git_status",
+            "status": "FAIL",
+            "message": (
+                f"BJ-0024 pattern: git_status.txt is missing or empty but task status "
+                f"is '{manifest_status}'. Expected real git status output."
+            ),
+        })
+
+    return checks
+
+
+# ---------------------------------------------------------------------------
 # Repo state (forbidden files / clean state)
 # ---------------------------------------------------------------------------
 
@@ -746,6 +937,13 @@ def run_audit(
     # 7. Repo state
     if repo:
         all_checks.extend(check_repo_state(repo))
+
+    # 8. BJ-0024 lifecycle compliance
+    # Run for review phase tasks to detect self-completion, dirty worktree with
+    # requires_pr=false, non-empty changed_files with requires_pr=false, etc.
+    # Pass worktree path so real git checks can be used instead of git_status.txt fallback.
+    if phase == "review" and artifact_dir:
+        all_checks.extend(check_lifecycle_compliance(artifact_dir, task_id, phase, worktree_path=worktree))
 
     # Compute summary status
     has_fail = any(c["status"] == "FAIL" for c in all_checks)
