@@ -66,7 +66,7 @@ under `dir:` workspace (not `--workspace worktree`).
 - Do NOT self-approve your own changes
 - Do NOT mark done unless the task body explicitly allows it
 - Final state MUST be `blocked / waiting_for_human_review` unless the task body explicitly allows `done`
-- Write all required artifacts to `{artifact_root}/<task-key>/`
+- Write all required artifacts to `{artifact_root}/{task_key}/`
 - Record `git status --short --untracked-files=all` in artifacts
 
 ---
@@ -373,6 +373,7 @@ def main() -> None:
         worktree_path=wt_path,
         repo=str(repo_root),
         artifact_root=str(artifact_root),
+        task_key=args.task_key,
     ) + "\n\n" + original_body
 
     # ------------------------------------------------------------------

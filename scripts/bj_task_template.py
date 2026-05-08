@@ -3,19 +3,20 @@
 bj_task_template.py — Reusable Hermes Kanban Task Body Generator
 
 Generates consistent, well-structured task bodies for the bullet-journal-app
-Hermes Kanban workflow without requiring manual markdown authoring.
+Hermes Kanban workflow by building a concrete task wrapper that embeds
+canonical template guidance from templates/hermes_tasks/<type>.md.
 
 Supported types: analysis, implementation, docs, bugfix, review
 
 Usage:
-    python3 scripts/bj_task_template.py \\
-      --type implementation \\
-      --task-key BJ-0008 \\
-      --title "Add reusable task body templates" \\
-      --goal "Add reusable Hermes task body templates for future repo tasks." \\
+    python3 scripts/bj_task_template.py \
+      --type implementation
+      --task-key BJ-0008
+      --title "Add reusable task body templates"
+      --goal "Add reusable Hermes task body templates for future repo tasks."
       --output /tmp/BJ-0008.generated.md
 
-    python3 scripts/bj_task_template.py --type docs --task-key BJ-0008 \\
+    python3 scripts/bj_task_template.py --type docs --task-key BJ-0008 \
       --title "Update docs" --goal "Update documentation." --dry-run
 
 NOTE: This script only generates a markdown body file. It does NOT create
@@ -59,589 +60,276 @@ This task was created via `scripts/bj_task_template.py` and the safe submitter
 """
 
 
-def build_analysis_skeleton(task_key: str, title: str, goal: str) -> str:
-    return f"""# {task_key} — {title}
+def build_worktree_path(task_key: str) -> str:
+    return f"/home/ubuntu/bullet_journal_app/.worktrees/{task_key}"
 
-## Project
 
-bullet-journal-app Hermes workflow tooling.
+# ------------------------------------------------------------------
+# Task-key-specific section content (replaces template placeholders)
+# ------------------------------------------------------------------
 
-## Repo
+# For each task type, define the concrete section content that replaces
+# the generic ## Sections code block in the template.
+# These are derived from the user-supplied goal; no <...> placeholders remain.
 
-```
-{REPO_ROOT}
-```
 
-## Task type
+def _section_content_for_review(task_key: str, title: str, goal: str) -> str:
+    return textwrap.dedent(f"""\
+        ## Goal
 
-Analysis / read-only.
+        {goal}
 
-## Task key
+        ## Background
 
-{task_key}
+        This review task was created to evaluate the changes described in the goal.
+        Review the provided diff, tests, and affected files carefully and produce
+        a verdict with any blocking issues noted.
 
-## Title
+        ## Review scope
 
-{title}
+        Inspect all changed files, related tests, and any documentation updates
+        that are part of this task. Verify correctness, consistency with existing
+        patterns, and absence of regressions.
 
-## Goal
+        ## Allowed changes
 
-{goal}
+        This is a review task. Source code changes are NOT allowed unless explicitly listed here:
+        - none
+        """)
 
-## Background
 
-<Context and motivation for this analysis.>
+def _section_content_for_analysis(task_key: str, title: str, goal: str) -> str:
+    return textwrap.dedent(f"""\
+        ## Goal
 
-## Required workspace behavior
+        {goal}
 
-The worker must operate only inside the verified worktree assigned to this task.
+        ## Background
 
-Before making changes, verify:
+        This analysis task was created to investigate the topic described in the goal.
+        Conduct a thorough, read-only investigation and document findings, decisions,
+        or recommendations in the completion report.
 
-```bash
-pwd
-git rev-parse --show-toplevel
-git status --short --untracked-files=all
-git branch --show-current
-```
+        ## Analysis scope
 
-## Allowed changes
+        Address the specific questions and objectives raised in the goal above.
+        Inspect available data, code, documentation, or other relevant sources.
+        Report any evidence found and note any remaining uncertainties.
+        """)
 
-This is an analysis task. Source code changes are NOT allowed unless explicitly listed here:
-- <list any allowed file changes, or "none">
-- <...>
 
-## Forbidden actions
+def _section_content_for_implementation(task_key: str, title: str, goal: str) -> str:
+    return textwrap.dedent(f"""\
+        ## Goal
 
-Do not:
-- modify app source code
-- modify database code
-- modify `bullet_journal.db`
-- modify `.gitignore`
-- modify Hermes global config
-- create a real Hermes task from the new template script during tests
-- push directly to `main`
-- merge any branch
-- self-approve the task
+        {goal}
 
-## Analysis scope
+        ## Background
 
-<Specific questions this analysis must answer.>
+        This implementation task was created to deliver the change described in the goal.
+        Inspect existing code patterns first, then make minimal scoped changes directly
+        tied to the goal. Verify behavior with relevant tests before completing.
 
-## Required artifacts
+        ## Allowed changes
 
-- `~/.hermes/task-artifacts/{task_key}/` folder
-- `analysis_report.md` with findings
-- `git_status.txt` with `git status --short --untracked-files=all`
-- `worktree_info.txt` with `git worktree list` output
+        Modify only the files necessary to achieve the goal. Report all changed
+        and new files in the completion report.
+        """)
 
-## Required checks
 
-```bash
-python3 -m py_compile <target_script.py>
-<any applicable linting or type checks>
-```
+def _section_content_for_bugfix(task_key: str, title: str, goal: str) -> str:
+    return textwrap.dedent(f"""\
+        ## Goal
 
-## Final Kanban comment
+        {goal}
 
-```
-{task_key} completed and waiting for human review.
+        ## Background
 
-Analysis summary:
-- ...
+        This bug fix task was created to address the defect described in the goal.
+        Reproduce or explain the bug, fix the root cause (not just the symptom),
+        and add or update tests to prevent regression.
 
-Artifacts:
-- ...
+        ## Allowed changes
 
-PR required:
-- no
+        Modify only the files necessary to fix the bug. Add or update test files
+        as needed to cover the fix.
+        """)
 
-Recommendation:
-- accept / revise
-```
 
-## Final blocked reason
+def _section_content_for_docs(task_key: str, title: str, goal: str) -> str:
+    return textwrap.dedent(f"""\
+        ## Goal
 
-```
-waiting_for_human_review
-```
-"""
+        {goal}
 
+        ## Background
 
-def build_implementation_skeleton(task_key: str, title: str, goal: str) -> str:
-    return f"""# {task_key} — {title}
+        This documentation task was created to address the docs need described in the goal.
+        Make only documentation changes; do not alter application behavior.
 
-## Project
+        ## Allowed changes
 
-bullet-journal-app Hermes workflow tooling.
+        - docs/*.md
+        - README.md (short pointers only)
+        - Any other documentation files directly related to the goal
+        """)
 
-## Repo
 
-```
-{REPO_ROOT}
-```
-
-## Task type
-
-Implementation / tooling.
-
-## Task key
-
-{task_key}
-
-## Title
-
-{title}
-
-## Goal
-
-{goal}
-
-## Background
-
-<Context and motivation for this implementation.>
-
-## Required workspace behavior
-
-The worker must operate only inside the verified worktree assigned to this task.
-
-Before making changes, verify:
-
-```bash
-pwd
-git rev-parse --show-toplevel
-git status --short --untracked-files=all
-git branch --show-current
-```
-
-## Allowed changes
-
-- <list allowed files/folders>
-- <...>
-
-## Forbidden actions
-
-Do not:
-- modify app source code unrelated to task goals
-- modify database code
-- modify `bullet_journal.db`
-- modify `.gitignore` unless strictly necessary
-- modify Hermes global config
-- create a real Hermes task from the new template script during tests
-- push directly to `main`
-- merge any branch
-- self-approve the task
-
-## Implementation guidance
-
-1. **Inspect existing code first** — understand the current patterns before making changes.
-2. **Make minimal scoped changes** — avoid scope creep; changes should be directly tied to the goal.
-3. **Run relevant tests** — verify behavior before marking complete.
-4. **Report changed files** — list all modified and new files in the final artifact.
-
-## Required artifacts
-
-- `~/.hermes/task-artifacts/{task_key}/` folder
-- `git_status.txt` with `git status --short --untracked-files=all`
-- `worktree_info.txt` with `git worktree list` output
-- `completion_report.md` with changed files, checks run, and summary
-
-## Required checks
-
-```bash
-python3 -m py_compile <target_script.py>
-<any applicable linting, type checks, or tests>
-```
-
-## Final Kanban comment
-
-```
-{task_key} completed and waiting for human review.
-
-Changed files:
-- ...
-
-Checks:
-- ...
-
-PR required:
-- yes/no
-
-Recommendation:
-- accept / revise
-```
-
-## Final blocked reason
-
-```
-waiting_for_human_review
-```
-"""
-
-
-def build_docs_skeleton(task_key: str, title: str, goal: str) -> str:
-    return f"""# {task_key} — {title}
-
-## Project
-
-bullet-journal-app Hermes workflow tooling.
-
-## Repo
-
-```
-{REPO_ROOT}
-```
-
-## Task type
-
-Documentation.
-
-## Task key
-
-{task_key}
-
-## Title
-
-{title}
-
-## Goal
-
-{goal}
-
-## Background
-
-<Context and motivation for this documentation work.>
-
-## Required workspace behavior
-
-The worker must operate only inside the verified worktree assigned to this task.
-
-Before making changes, verify:
-
-```bash
-pwd
-git rev-parse --show-toplevel
-git status --short --untracked-files=all
-git branch --show-current
-```
-
-## Allowed changes
-
-- docs/*.md
-- README.md (short pointers only)
-- <any other allowed doc files>
-
-## Forbidden actions
-
-Do not:
-- modify app source code
-- modify database code
-- modify `bullet_journal.db`
-- modify `.gitignore`
-- modify Hermes global config
-- create a real Hermes task from the new template script during tests
-- push directly to `main`
-- merge any branch
-- self-approve the task
-
-## Documentation notes
-
-- **Docs-only changes** — this task should not change application behavior.
-- **Run formatting/checks** where applicable (e.g., markdown linting).
-- **Be concise** — prefer clear, minimal documentation over verbose explanations.
-
-## Required artifacts
-
-- `~/.hermes/task-artifacts/{task_key}/` folder
-- `git_status.txt` with `git status --short --untracked-files=all`
-- `worktree_info.txt` with `git worktree list` output
-- `completion_report.md` with changed files and summary
-
-## Required checks
-
-```bash
-<any applicable markdown linting or formatting checks>
-```
-
-## Final Kanban comment
-
-```
-{task_key} completed and waiting for human review.
-
-Changed files:
-- ...
-
-Checks:
-- ...
-
-PR required:
-- yes/no
-
-Recommendation:
-- accept / revise
-```
-
-## Final blocked reason
-
-```
-waiting_for_human_review
-```
-"""
-
-
-def build_bugfix_skeleton(task_key: str, title: str, goal: str) -> str:
-    return f"""# {task_key} — {title}
-
-## Project
-
-bullet-journal-app Hermes workflow tooling.
-
-## Repo
-
-```
-{REPO_ROOT}
-```
-
-## Task type
-
-Bug fix.
-
-## Task key
-
-{task_key}
-
-## Title
-
-{title}
-
-## Goal
-
-{goal}
-
-## Background
-
-<Description of the bug and its impact.>
-
-## Required workspace behavior
-
-The worker must operate only inside the verified worktree assigned to this task.
-
-Before making changes, verify:
-
-```bash
-pwd
-git rev-parse --show-toplevel
-git status --short --untracked-files=all
-git branch --show-current
-```
-
-## Allowed changes
-
-- <files that need to be modified to fix the bug>
-- <test files to add or update>
-
-## Forbidden actions
-
-Do not:
-- modify app source code unrelated to the bug fix
-- modify database code
-- modify `bullet_journal.db`
-- modify `.gitignore` unless strictly necessary
-- modify Hermes global config
-- create a real Hermes task from the new template script during tests
-- push directly to `main`
-- merge any branch
-- self-approve the task
-
-## Bug fix guidance
-
-1. **Reproduce or explain the bug** — describe steps to reproduce or the root cause.
-2. **Patch root cause** — fix the underlying issue, not just the symptom.
-3. **Add or update tests where practical** — ensure the bug doesn't regress.
-4. **Verify the fix** — run relevant checks/tests to confirm the fix works.
-
-## Required artifacts
-
-- `~/.hermes/task-artifacts/{task_key}/` folder
-- `git_status.txt` with `git status --short --untracked-files=all`
-- `worktree_info.txt` with `git worktree list` output
-- `completion_report.md` with bug description, fix applied, and changed files
-
-## Required checks
-
-```bash
-python3 -m py_compile <fixed_script.py>
-<any applicable tests>
-```
-
-## Final Kanban comment
-
-```
-{task_key} completed and waiting for human review.
-
-Bug:
-- ...
-
-Fix applied:
-- ...
-
-Changed files:
-- ...
-
-Checks:
-- ...
-
-PR required:
-- yes/no
-
-Recommendation:
-- accept / revise
-```
-
-## Final blocked reason
-
-```
-waiting_for_human_review
-```
-"""
-
-
-def build_review_skeleton(task_key: str, title: str, goal: str) -> str:
-    return f"""# {task_key} — {title}
-
-## Project
-
-bullet-journal-app Hermes workflow tooling.
-
-## Repo
-
-```
-{REPO_ROOT}
-```
-
-## Task type
-
-Code review.
-
-## Task key
-
-{task_key}
-
-## Title
-
-{title}
-
-## Goal
-
-{goal}
-
-## Background
-
-<Context for this review — what PR, commit, or code change is being reviewed?>
-
-## Required workspace behavior
-
-The worker must operate only inside the verified worktree assigned to this task.
-
-Before making changes, verify:
-
-```bash
-pwd
-git rev-parse --show-toplevel
-git status --short --untracked-files=all
-git branch --show-current
-```
-
-## Review scope
-
-<What should the reviewer inspect? Diff, tests, specific files?>
-
-## Allowed changes
-
-This is a review task. Source code changes are NOT allowed unless explicitly listed here:
-- <list any allowed file changes, or "none">
-- <...>
-
-## Forbidden actions
-
-Do not:
-- modify app source code unless explicitly requested in the review goal
-- modify database code
-- modify `bullet_journal.db`
-- modify `.gitignore`
-- modify Hermes global config
-- create a real Hermes task from the new template script during tests
-- push directly to `main`
-- merge any branch
-- self-approve the task
-
-## Review guidance
-
-1. **Inspect diff/status/tests** — review the full changeset carefully.
-2. **Produce review verdict** — note any blocking issues, suggestions, or approval.
-3. **No source changes unless explicitly requested** — review only; implement separately if needed.
-
-## Required artifacts
-
-- `~/.hermes/task-artifacts/{task_key}/` folder
-- `review_report.md` with findings, verdict, and any blocking issues
-- `git_status.txt` with `git status --short --untracked-files=all`
-- `worktree_info.txt` with `git worktree list` output
-
-## Required checks
-
-```bash
-git diff <ref> --stat
-git diff <ref>
-<any applicable test runs>
-```
-
-## Final Kanban comment
-
-```
-{task_key} completed and waiting for human review.
-
-Verdict:
-- ...
-
-Blocking issues:
-- ...
-
-Findings:
-- ...
-
-PR required:
-- no
-
-Recommendation:
-- accept / revise
-```
-
-## Final blocked reason
-
-```
-waiting_for_human_review
-```
-"""
-
-
-# Map template type to builder function
-TEMPLATE_BUILDERS = {
-    "analysis": build_analysis_skeleton,
-    "implementation": build_implementation_skeleton,
-    "docs": build_docs_skeleton,
-    "bugfix": build_bugfix_skeleton,
-    "review": build_review_skeleton,
+SECTION_CONTENT = {
+    "review": _section_content_for_review,
+    "analysis": _section_content_for_analysis,
+    "implementation": _section_content_for_implementation,
+    "bugfix": _section_content_for_bugfix,
+    "docs": _section_content_for_docs,
 }
+
+
+# ------------------------------------------------------------------
+# Template loading — loads canonical guidance (no generic sections)
+# ------------------------------------------------------------------
+
+SCRIPT_DIR = Path(__file__).parent.resolve()
+TEMPLATES_DIR = SCRIPT_DIR.parent / "templates" / "hermes_tasks"
+
+
+def load_template_guidance(task_type: str, task_key: str) -> str:
+    """Load the canonical template guidance section.
+
+    The template structure after the concrete sections is:
+        # <Type> Task Template
+        ## Purpose
+        ## Task type
+        ## Key characteristics
+        ## Sections
+        ```markdown
+        ## Goal
+        <...placeholders...>
+        ```
+        ## Required artifacts     ← we anchor here
+        ## Governance notes
+        ## Worker preflight guard
+        ## Artifact manifest initialization
+        ## Final validation
+
+    We return everything from "## Required artifacts" onwards, which is
+    the canonical worker guidance (artifact manifest, preflight guard,
+    init, validation).  The generic ## Sections block (which contains
+    unresolved <...> placeholders) is simply skipped.
+
+    All <task-key> placeholders in the canonical guidance are replaced
+    with the actual task_key.  <task-id> is left as-is because the
+    Hermes task ID is not available at body-generation time; workers
+    must substitute it from their task context.
+    """
+    template_path = TEMPLATES_DIR / f"{task_type}.md"
+    if not template_path.exists():
+        raise FileNotFoundError(
+            f"Template not found: {template_path}. "
+            f"Available types: {', '.join(sorted(TEMPLATE_TYPES))}"
+        )
+
+    template_text = template_path.read_text()
+
+    # Anchor on ## Required artifacts — everything after it is canonical guidance
+    marker = "## Required artifacts\n"
+    if marker not in template_text:
+        raise ValueError(
+            f"Template {task_type}.md is missing '## Required artifacts' section. "
+            "Cannot generate task body."
+        )
+
+    start = template_text.index(marker)
+    guidance = template_text[start:]
+
+    # Substitute <task-key> with the concrete task key throughout
+    guidance = guidance.replace("<task-key>", task_key)
+
+    return guidance
+
+
+def build_body(
+    task_type: str,
+    task_key: str,
+    title: str,
+    goal: str,
+    include_governance: bool = True,
+) -> str:
+    """Build a concrete task body.
+
+    Structure:
+        --- governance header (optional) ---
+        # <task_key> — <title>
+
+        ## Project
+        ## Repo
+        ## Task type
+        ## Task key
+        ## Title
+        ## Goal
+
+        <concrete section content derived from goal — no <...> placeholders>
+        <canonical template guidance from templates/hermes_tasks/<type>.md>
+        (the ## Sections generic code block is omitted)
+    """
+    worktree = build_worktree_path(task_key)
+
+    # Concrete task header
+    task_header = f"# {task_key} — {title}\n"
+
+    # Standard metadata fields
+    metadata = textwrap.dedent(f"""\
+        ## Project
+
+        bullet-journal-app Hermes workflow tooling.
+
+        ## Repo
+
+        ```text
+        {REPO_ROOT}
+        ```
+
+        ## Task type
+
+        {task_type}.
+
+        ## Task key
+
+        {task_key}
+
+        ## Title
+
+        {title}
+        """)
+
+    # Concrete section content for this task type (no <...> placeholders)
+    section_fn = SECTION_CONTENT.get(task_type)
+    if section_fn is None:
+        raise ValueError(f"Unknown task type: {task_type}")
+    concrete_sections = section_fn(task_key, title, goal)
+
+    # Canonical template guidance (stripped of generic ## Sections block)
+    template_guidance = load_template_guidance(task_type, task_key)
+
+    # Assemble
+    parts = []
+    if include_governance:
+        parts.append(
+            GOVERNANCE_HEADER.format(
+                worktree_path=worktree,
+                repo_root=REPO_ROOT,
+            )
+        )
+    parts.append(task_header)
+    parts.append(metadata)
+    parts.append(concrete_sections)
+    parts.append(template_guidance)
+
+    return "\n".join(parts)
 
 
 # ------------------------------------------------------------------
 # CLI
 # ------------------------------------------------------------------
-
-def build_worktree_path(task_key: str) -> str:
-    return f"/home/ubuntu/bullet_journal_app/.worktrees/{task_key}"
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -718,22 +406,13 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Build
     # ------------------------------------------------------------------
-    builder = TEMPLATE_BUILDERS[args.type]
-    worktree_path = build_worktree_path(args.task_key)
-
-    # Generate the skeleton (without header — header is governance-level)
-    skeleton = builder(args.task_key, args.title.strip(), args.goal.strip())
-
-    # Add governance header only when not suppressed.
-    # When suppressed, the caller or submitter is responsible for adding
-    # a governance section appropriate to its own workflow.
-    if args.no_governance_header:
-        body = skeleton
-    else:
-        body = GOVERNANCE_HEADER.format(
-            worktree_path=worktree_path,
-            repo_root=REPO_ROOT,
-        ) + "\n" + skeleton
+    body = build_body(
+        args.type,
+        args.task_key,
+        args.title.strip(),
+        args.goal.strip(),
+        include_governance=not args.no_governance_header,
+    )
 
     # ------------------------------------------------------------------
     # Output
