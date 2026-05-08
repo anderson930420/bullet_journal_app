@@ -60,15 +60,24 @@ def load_yaml_simple(stream) -> dict:
             continue
         if line.startswith("projects:"):
             continue
-        if line.startswith("  ") and ":" in line:
+        # Depth-1 project name line: "  project-name:" with nothing after the colon
+        # (or only whitespace after colon). This is a project block header.
+        stripped = line.strip()
+        if stripped.endswith(":") and not any(stripped.startswith(pre) for pre in (" ", "\t")):
+            # top-level project name like "bullet-journal:"
+            project_name = stripped.rstrip(":")
+            if project_name:
+                current_project = project_name
+        elif line.startswith("  ") and ":" in line:
+            # key: value under current project
             key = line.strip().split(":")[0]
             rest = line.strip().split(":", 1)[1].strip()
-            if rest:
-                if current_project:
-                    data.setdefault("projects", {}).setdefault(current_project, {})[key] = rest
+            if rest and current_project:
+                data.setdefault("projects", {}).setdefault(current_project, {})[key] = rest
         else:
+            # Bare project name (no leading spaces), e.g. "bullet-journal:"
             project_name = line.strip().rstrip(":")
-            if project_name:
+            if project_name and not any(c in project_name for c in (" ", "\t")):
                 current_project = project_name
     return data
 
@@ -495,9 +504,9 @@ def check_pr_metadata(pr_number: Optional[int], pr_url: Optional[str], artifact_
 
     # Check merged status via gh
     if effective_number is not None:
-        gh_args = ["gh", "pr", "view", str(effective_number), "--json", "merged,url"]
+        gh_args = ["gh", "pr", "view", str(effective_number), "--json", "state,mergedAt,url"]
     elif effective_url:
-        gh_args = ["gh", "pr", "view", effective_url, "--json", "merged,url"]
+        gh_args = ["gh", "pr", "view", effective_url, "--json", "state,mergedAt,url"]
     else:
         gh_args = []
     if gh_args:
@@ -513,12 +522,14 @@ def check_pr_metadata(pr_number: Optional[int], pr_url: Optional[str], artifact_
 
     try:
         data = json.loads(stdout)
-        merged = data.get("merged", False)
+        state = data.get("state", "")
+        merged_at = data.get("mergedAt")
         url = data.get("url", effective_url)
+        is_merged = state == "MERGED" or (merged_at is not None and merged_at != "")
         checks.append({
             "name": "pr_merged_status",
-            "status": "PASS" if merged else "FAIL",
-            "message": f"PR {effective_number}: merged={merged} (url={url})",
+            "status": "PASS" if is_merged else "FAIL",
+            "message": f"PR {effective_number}: state={state}, mergedAt={merged_at} (url={url})",
         })
     except (json.JSONDecodeError, KeyError) as e:
         checks.append({
@@ -829,13 +840,11 @@ def main():
             if os.path.exists(candidate):
                 config_path = candidate
             else:
-                # Fall back to repo root (parent of worktree) when inside .worktrees/
+                # Inside .worktrees/ — git toplevel is the worktree, not the parent repo.
+                # Try parent of the git root (the actual repo that owns this worktree).
                 parent = os.path.dirname(git_root.rstrip("/"))
                 if parent and os.path.exists(os.path.join(parent, config_path)):
                     config_path = os.path.join(parent, config_path)
-        elif rc == 0:
-            # empty git_root - shouldn't happen but handle it
-            pass
 
     # Validate config exists
     if not os.path.exists(config_path):
