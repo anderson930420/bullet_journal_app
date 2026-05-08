@@ -758,9 +758,43 @@ def check_lifecycle_compliance(
 
     # ------------------------------------------------------------------
     # Check 4: missing or empty git_status.txt when worktree is dirty
+    #
+    # Special case: if the worktree exists and is genuinely clean (verified
+    # via real git commands), accept human-readable clean-state text like
+    # "(empty — worktree clean)" even if git_status.txt contains the literal
+    # string "git status" (which makes it look template-like at first glance).
     # ------------------------------------------------------------------
     git_status_missing = not os.path.isfile(git_status_path)
     git_status_empty = not git_status_content.strip()
+
+    # Check if git_status.txt contains explicit clean-state indicators
+    # that are valid evidence even when the file looks "template-like"
+    clean_indicators = [
+        "(empty — worktree clean)",
+        "(empty — no repo diff)",
+        "worktree clean",
+        "no repo diff",
+    ]
+    has_explicit_clean = any(indicator in git_status_content for indicator in clean_indicators)
+
+    # Determine if real worktree is clean (skip template check when confirmed clean)
+    worktree_clean_bypass = False
+    effective_worktree = worktree_path or manifest_worktree
+    if effective_worktree and os.path.isdir(effective_worktree):
+        rc1, status_out, _ = run(
+            ["git", "status", "--short", "--untracked-files=all"],
+            cwd=effective_worktree,
+        )
+        rc2, diff_out, _ = run(
+            ["git", "diff", "--stat"],
+            cwd=effective_worktree,
+        )
+        worktree_really_clean = (
+            rc1 == 0 and status_out.strip() == "" and rc2 == 0 and diff_out.strip() == ""
+        )
+        if worktree_really_clean and manifest_status in ("waiting_for_human_review", "accepted", "rejected", "done"):
+            worktree_clean_bypass = True
+
     git_status_looks_template = (
         git_status_missing or
         (git_status_empty) or
@@ -772,14 +806,16 @@ def check_lifecycle_compliance(
         "git status" not in git_status_content.lower()
     )
     if git_status_looks_template and not real_git_status_content and manifest_status not in (None, "running"):
-        checks.append({
-            "name": "lifecycle_missing_git_status",
-            "status": "FAIL",
-            "message": (
-                f"BJ-0024 pattern: git_status.txt is missing or empty but task status "
-                f"is '{manifest_status}'. Expected real git status output."
-            ),
-        })
+        # Bypass if worktree is confirmed clean and git_status.txt has explicit clean indicators
+        if not (worktree_clean_bypass and has_explicit_clean):
+            checks.append({
+                "name": "lifecycle_missing_git_status",
+                "status": "FAIL",
+                "message": (
+                    f"BJ-0024 pattern: git_status.txt is missing or empty but task status "
+                    f"is '{manifest_status}'. Expected real git status output."
+                ),
+            })
 
     return checks
 
