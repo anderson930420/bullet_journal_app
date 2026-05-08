@@ -320,6 +320,21 @@ python3 scripts/kanban_task_audit.py \
   --phase review
 ```
 
+### Run workflow regression audit (all-in-one check)
+```bash
+python3 scripts/kanban_workflow_regression.py \
+  --project bullet-journal \
+  --task-key BJ-XXXX \
+  --task-id <task-id> \
+  --phase review
+```
+
+Phases: `review` | `post-handoff` | `post-cleanup`
+
+Checks: main repo status, worktree existence vs phase, artifact dir, required artifact files, manifest validation, manifest consistency, PR metadata, dirty/no-PR mismatch, lifecycle audit, post-cleanup status.
+
+Exit: 0 = pass, 1 = fail, 2 = error. `--json` for JSON output.
+
 ### PR handoff
 ```bash
 cd /home/ubuntu/bullet_journal_app/.worktrees/BJ-XXXX
