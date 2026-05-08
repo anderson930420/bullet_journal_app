@@ -65,3 +65,50 @@ python3 scripts/kanban_worker_guard.py \
 
 The guard fails fast if you are in the wrong directory, on the wrong branch,
 or the main repo has uncommitted changes. It does not replace human review.
+
+## Artifact manifest initialization
+
+After preflight guard passes, initialize the artifact manifest:
+
+```bash
+python3 scripts/kanban_artifact_manifest.py init \
+  --project bullet-journal \
+  --task-key <task-key> \
+  --task-id <task-id> \
+  --status running \
+  --recommendation unknown \
+  --requires-pr false \
+  --output /home/ubuntu/.hermes/task-artifacts/<task-key>/artifact_manifest.json
+```
+
+**Conditional PR requirement:** `--requires-pr false` is the default for review
+tasks that produce no repo diff. However, if the review creates or modifies any
+repo files (e.g., applying linter fixes, updating configs, or modifying code
+as part of the review), the worker MUST re-initialize or update the manifest
+with `--requires-pr true` before completing. Any task with repo diff requires
+human PR handoff and GitHub merge after review.
+
+Record the initialization in `completion_report.md`:
+
+```
+Artifact manifest initialized at:
+/home/ubuntu/.hermes/task-artifacts/<task-key>/artifact_manifest.json
+```
+
+## Final validation
+
+Before recording your final `blocked / waiting_for_human_review` state, run:
+
+```bash
+python3 scripts/kanban_artifact_manifest.py validate \
+  --path /home/ubuntu/.hermes/task-artifacts/<task-key>/artifact_manifest.json
+```
+
+Record the validation result in `completion_report.md`:
+
+```
+Artifact manifest validation: PASS | FAIL
+```
+
+If the manifest is invalid, fix it before completing. Do not mark the task done
+with an invalid manifest.
