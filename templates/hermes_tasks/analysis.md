@@ -42,9 +42,33 @@ standard folder layout. Required files:
 
 ## Governance notes
 
+- **Final action:** `hermes kanban block <task-id> waiting_for_human_review`
+  - Do **NOT** use `hermes kanban complete` — analysis tasks must never self-complete
+  - If the system only has a completion API with summary, you must comment first, then block; you must not complete
 - Final state: `blocked / waiting_for_human_review`
 - Do not push, merge, or self-approve
 - Write all artifacts to `~/.hermes/task-artifacts/<task-key>/`
+- Record `git status --short --untracked-files=all` in `git_status.txt`
+- Record `git diff --stat` in `git_status.txt`
+
+## Worktree cleanliness check (MANDATORY before finalizing)
+
+Before recording your final `blocked / waiting_for_human_review` state, run and record:
+
+```bash
+git status --short --untracked-files=all
+git diff --stat
+```
+
+If either command shows any output (untracked files, modified files, staged changes),
+the worktree is **not clean** and you MUST update the artifact manifest:
+
+- `requires_pr` must be set to `true`
+- The manifest must reflect the actual `changed_files` list
+
+`requires_pr=false` is valid **only** when both `git status --short --untracked-files=all`
+and `git diff --stat` produce empty output. Any repo diff requires human PR handoff
+and GitHub merge — do not leave the manifest claiming `requires_pr=false` with a dirty worktree.
 
 ## Worker preflight guard
 
