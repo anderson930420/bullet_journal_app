@@ -34,11 +34,13 @@ Dry run (no worktree, no artifact folder, no hermes call):
 """
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import sys
 import yaml
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -194,11 +196,11 @@ def artifact_path_for(project: dict, task_key: str) -> Path:
 
 
 def verify_worktree(wt_path: Path, expected_branch: str) -> None:
-    """Run all required verification checks on the worktree."""
-    os.chdir(wt_path)
+    """Run all required verification checks on the worktree.
 
+    All git commands use explicit workdir=wt_path so no os.chdir() is needed.
+    """
     checks = {
-        "pwd": ["pwd"],
         "git rev-parse --show-toplevel": [
             "git", "rev-parse", "--show-toplevel"],
         "git branch --show-current": ["git", "branch", "--show-current"],
@@ -214,10 +216,7 @@ def verify_worktree(wt_path: Path, expected_branch: str) -> None:
         output = result.stdout.strip()
         print(f"[{name}]")
         print(output)
-        if name == "pwd" and output != str(wt_path):
-            print(f"  MISMATCH: expected {wt_path}")
-            all_ok = False
-        elif name == "git rev-parse --show-toplevel" and output != str(wt_path):
+        if name == "git rev-parse --show-toplevel" and output != str(wt_path):
             print(f"  MISMATCH: expected {wt_path}")
             all_ok = False
         elif name == "git branch --show-current" and output != expected_branch:
@@ -231,6 +230,42 @@ def create_artifact_folder(artifact_root: Path, task_key: str) -> Path:
     ap = artifact_root / task_key
     ap.mkdir(parents=True, exist_ok=True)
     return ap
+
+
+def write_create_failure_artifact(
+    ap: Path,
+    project: str,
+    task_key: str,
+    title: str,
+    assignee: str,
+    repo: Path,
+    worktree: Path,
+    branch: str,
+    cmd: list[str],
+    returncode: int,
+    stdout: str,
+    stderr: str,
+) -> None:
+    """Write create_failed.json into the task artifact directory."""
+    artifact_file = ap / "create_failed.json"
+    payload = {
+        "project": project,
+        "task_key": task_key,
+        "title": title,
+        "assignee": assignee,
+        "repo": str(repo),
+        "worktree": str(worktree),
+        "branch": branch,
+        "artifact_dir": str(ap),
+        "command": " ".join(cmd),
+        "returncode": returncode,
+        "stdout": stdout,
+        "stderr": stderr,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+    with open(artifact_file, "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"\nWrote failure artifact: {artifact_file}")
 
 
 def build_hermes_command(args: argparse.Namespace, body_with_header: str,
@@ -435,8 +470,25 @@ def main() -> None:
         if result.stderr:
             print(result.stderr, file=sys.stderr)
         if result.returncode != 0:
-            print(f"WARNING: hermes kanban create returned {result.returncode}",
+            write_create_failure_artifact(
+                ap=ap,
+                project=args.project,
+                task_key=args.task_key,
+                title=args.title,
+                assignee=args.assignee,
+                repo=repo_root,
+                worktree=wt_path,
+                branch=branch,
+                cmd=cmd,
+                returncode=result.returncode,
+                stdout=result.stdout,
+                stderr=result.stderr,
+            )
+            print("\nERROR: hermes kanban create failed. "
+                  "Worktree and artifact folder were created but task was NOT created.",
                   file=sys.stderr)
+            print("Review create_failed.json for details.", file=sys.stderr)
+            sys.exit(1)
     except FileNotFoundError:
         print("ERROR: 'hermes' command not found in PATH", file=sys.stderr)
         print("Task was NOT created. Worktree and artifact folder exist.",
