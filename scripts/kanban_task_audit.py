@@ -344,6 +344,32 @@ def check_worktree_state(worktree: Optional[str], branch: Optional[str], phase: 
                 "status": "WARN",
                 "message": "Skipped branch delete check (repo not available)",
             })
+
+    elif phase == "post-handoff":
+        # For post-handoff: worktree and branch should still exist
+        # (handoff means PR created but not yet merged/cleaned up)
+        exists = os.path.isdir(worktree)
+        checks.append({
+            "name": "worktree_exists_post_handoff",
+            "status": "PASS" if exists else "FAIL",
+            "message": f"Worktree {'exists' if exists else 'not found'}: {worktree}",
+        })
+
+        if exists and repo:
+            rc, out, _ = run(["git", "branch", "--list", branch], cwd=repo)
+            branch_exists = rc == 0 and out.strip() != ""
+            checks.append({
+                "name": "branch_exists_post_handoff",
+                "status": "PASS" if branch_exists else "FAIL",
+                "message": f"Branch '{branch}' {'exists' if branch_exists else 'not found'} in {repo}",
+            })
+        else:
+            checks.append({
+                "name": "branch_exists_post_handoff",
+                "status": "WARN",
+                "message": "Skipped branch check (repo not available or worktree missing)",
+            })
+
     else:  # auto
         # Ambiguous — be lenient
         checks.append({
@@ -456,6 +482,35 @@ def check_hermes_task(task_id: str, phase: str) -> list[dict]:
                 "name": "hermes_outcome_set",
                 "status": "WARN",
                 "message": "Task outcome is not set (may still be pending human action)",
+            })
+
+    elif phase == "post-handoff":
+        # For post-handoff: task should still be in blocked/waiting_for_human_review state
+        # (PR is created but not yet merged; worker must not self-complete)
+        if status == "blocked":
+            if blocked_reason and "waiting_for_human_review" in blocked_reason:
+                checks.append({
+                    "name": "hermes_status_post_handoff",
+                    "status": "PASS",
+                    "message": f"Task is blocked with 'waiting_for_human_review': {blocked_reason}",
+                })
+            else:
+                checks.append({
+                    "name": "hermes_status_post_handoff",
+                    "status": "WARN",
+                    "message": f"Task is blocked but reason does not include 'waiting_for_human_review': {blocked_reason}",
+                })
+        elif status == "done":
+            checks.append({
+                "name": "hermes_status_post_handoff",
+                "status": "FAIL",
+                "message": "Task status is 'done' but PR handoff has not been cleaned up — worker self-completed",
+            })
+        else:
+            checks.append({
+                "name": "hermes_status_post_handoff",
+                "status": "WARN",
+                "message": f"Task status is '{status}' — expected blocked for post-handoff phase",
             })
     else:  # auto
         checks.append({
@@ -978,7 +1033,9 @@ def run_audit(
     # Run for review phase tasks to detect self-completion, dirty worktree with
     # requires_pr=false, non-empty changed_files with requires_pr=false, etc.
     # Pass worktree path so real git checks can be used instead of git_status.txt fallback.
-    if phase == "review" and artifact_dir:
+    # post-handoff also runs this check using review-like semantics because
+    # the task should still be in blocked state, not done, until PR is merged.
+    if phase in ("review", "post-handoff") and artifact_dir:
         all_checks.extend(check_lifecycle_compliance(artifact_dir, task_id, phase, worktree_path=worktree))
 
     # Compute summary status
@@ -1052,9 +1109,9 @@ def build_parser():
     parser.add_argument("--merged-commit", default=None, help="Merged commit SHA")
     parser.add_argument(
         "--phase",
-        choices=["auto", "review", "post-cleanup"],
+        choices=["auto", "review", "post-handoff", "post-cleanup"],
         default="auto",
-        help="Audit phase: auto (default), review, or post-cleanup",
+        help="Audit phase: auto (default), review, post-handoff, or post-cleanup",
     )
     parser.add_argument("--json", action="store_true", help="Output JSON instead of human-readable text")
     return parser
