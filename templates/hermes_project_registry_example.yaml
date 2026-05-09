@@ -1,0 +1,77 @@
+# Hermes Project Registry — Annotated Example
+#
+# Copy this file to config/projects.yaml in your new repo and edit the values.
+# This file shows all available configuration fields with explanations.
+#
+# To use: copy to config/projects.yaml in your target repo, then edit the values.
+
+projects:
+  my-project:
+    # Absolute path to the repository root
+    # Required — must be an existing, valid git repository
+    repo: /path/to/my/project
+
+    # Default branch name (main, master, etc.)
+    # Workers will create task branches from this branch
+    default_branch: main
+
+    # Short prefix for task keys in this project
+    # Examples: "BJ" (bullet-journal), "SF" (signal-forge), "AP" (alpha-forge)
+    # Task keys become: PREFIX-001, PREFIX-002, etc.
+    task_prefix: PREFIX
+
+    # Root directory for task artifact folders
+    # This can be a shared location (like /home/ubuntu/.hermes/task-artifacts)
+    # or repo-specific. Each task gets a subdirectory: <artifact_root>/<task-key>/
+    artifact_root: /home/ubuntu/.hermes/task-artifacts
+
+    # Default Hermes profile to assign tasks to when --assignee is not specified
+    # This should match the profile name used in hermes kanban create --assignee
+    default_assignee: my-profile
+
+    # Prefix for task branches
+    # Keep "worktree/" — task branches become: worktree/<task-key>
+    # e.g., worktree/BJ-0030, worktree/SF-001
+    branch_prefix: worktree/
+
+# ---------------------------------------------------------------------------
+# Adding more projects
+# ---------------------------------------------------------------------------
+# Add additional projects as siblings to "my-project" above:
+#
+#   signal-forge:
+#     repo: /path/to/signal-forge
+#     default_branch: main
+#     task_prefix: SF
+#     artifact_root: /home/ubuntu/.hermes/task-artifacts
+#     default_assignee: signal-profile
+#     branch_prefix: worktree/
+#
+#   alpha-forge:
+#     repo: /path/to/alpha-forge
+#     default_branch: main
+#     task_prefix: ALPHA
+#     artifact_root: /home/ubuntu/.hermes/task-artifacts
+#     default_assignee: alpha-profile
+#     branch_prefix: worktree/
+#
+# ---------------------------------------------------------------------------
+# Field semantics
+# ---------------------------------------------------------------------------
+# repo            — Must exist and be a valid git repository. Workers operate
+#                   inside <repo>/.worktrees/<task-key>/ using dir: workspace.
+#
+# default_branch  — The branch workers branch off when creating task worktrees.
+#                   Must be clean (no uncommitted changes) before task creation.
+#
+# task_prefix     — Used to form task keys. Only [A-Za-z0-9._-] allowed in keys.
+#
+# artifact_root   — Shared artifact storage. Must be writable by the Hermes agent.
+#                   Artifacts for task PREFIX-001 go in <artifact_root>/PREFIX-001/
+#
+# default_assignee — Profile name that receives tasks by default. Can be
+#                    overridden with --assignee at task creation time.
+#
+# branch_prefix   — Task branches are named: <prefix><task-key>
+#                   e.g., "worktree/" + "BJ-0030" = "worktree/BJ-0030"
+#                   The "/" in "worktree/" is intentional — do not remove it.
